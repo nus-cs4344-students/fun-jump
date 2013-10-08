@@ -12,13 +12,14 @@ function Player() {
 	var that = this;
 	var vx = 0;
 	var vy = 0;
-	var ay = 0;
 	
 	this.isFalling = true;
 	this.isJumping = false;
 	
 	this.jumpSpeed = 0;
 	this.fallSpeed = 1;
+	
+	this.screenMove = false;
 	
 	that.setPosition = function(x,y){
 		that.x = x;
@@ -40,15 +41,15 @@ function Player() {
 			}
 			else{
 				if(direction == 'left'){
-					vx = vx + (-1*Player.XACCELERATION);
+					vx = vx - Player.XACCELERATION;
 				}
 				else if(direction == 'right')
 					vx = vx + Player.XACCELERATION;
 				else if(direction == 'stop'){
 					if(vx > Player.XACCELERATION)
-						vx = vx - Player.XACCELERATION;
+						vx = vx - (Player.XACCELERATION+0.5);
 					else if(vx < -Player.XACCELERATION)
-						vx = vx + Player.XACCELERATION;
+						vx = vx + (Player.XACCELERATION+0.5);
 					else
 						vx = 0;
 				}
@@ -69,7 +70,14 @@ function Player() {
 	}
 	
 	that.checkJump = function() {
-		that.setPosition(that.x, that.y - that.jumpSpeed);
+		if(that.y > FunJump.HEIGHT * 0.4){
+			that.setPosition(that.x, that.y - that.jumpSpeed);
+			that.screenMove = false;
+		}
+		else{
+			that.screenMove = true;
+		}
+		
 		that.jumpSpeed--;
 
 		if (that.jumpSpeed == 0) {
@@ -80,10 +88,10 @@ function Player() {
 	}
 	
 	that.checkFall = function(){
-						
 		if (that.y < FunJump.HEIGHT - Player.HEIGHT) {
 			that.setPosition(that.x, that.y + that.fallSpeed);
-			that.fallSpeed = that.fallSpeed + 0.5;
+			if(that.fallSpeed < Platform.HEIGHT) //fix for going thru platform
+				that.fallSpeed = that.fallSpeed + 0.5;
 		} else {
 			that.fallStop();
 		}
@@ -99,6 +107,5 @@ function Player() {
 }
 Player.HEIGHT = 30;
 Player.WIDTH = 30;
-Player.XACCELERATION = 0.5;
+Player.XACCELERATION = 1.5;
 global.Player = Player;
-	//ctx.drawImage(that.image,that.X,that.Y,that.width,that.height);
