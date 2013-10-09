@@ -202,7 +202,7 @@ function PongServer() {
                 console.log("connected");
                 // Sends to client
                 broadcast({type:"message", content:"There is now " + count + " players"});
-
+//				broadcast({type:"updateMap", content:
                 if (count == 2) {
                     // Send back message that game is full
                     unicast(conn, {type:"message", content:"The game is full.  Come back later"});

@@ -1,17 +1,25 @@
 "use strict"; 
-console.log("Player");
-function Player() {
+console.log("Player Loaded");
+function Player(id) {
 	//this.image;
 	this.x;
 	this.y;
 	this.image = new Image();
-	this.image.src = "Person.png";
+	if(id==1){
+		//this.image.src = "Person.png";
+		this.color = "#AAA";
+	}
+	else if (id==2){
+		//this.image.src = "";
+		this.color = "#555";
+	}
 	this.x = 0;
-	this.y = 0;//FunJump.HEIGHT-Player.HEIGHT;
+	this.y = FunJump.HEIGHT-Player.HEIGHT;
 	
 	var that = this;
 	var vx = 0;
 	var vy = 0;
+	this.distance = 0;
 	
 	this.isFalling = true;
 	this.isJumping = false;
@@ -78,6 +86,7 @@ function Player() {
 			that.screenMove = true;
 		}
 		
+		that.distance += that.jumpSpeed;
 		that.jumpSpeed--;
 
 		if (that.jumpSpeed == 0) {
@@ -90,8 +99,10 @@ function Player() {
 	that.checkFall = function(){
 		if (that.y < FunJump.HEIGHT - Player.HEIGHT) {
 			that.setPosition(that.x, that.y + that.fallSpeed);
-			if(that.fallSpeed < Platform.HEIGHT) //fix for going thru platform
+			if(that.fallSpeed < Platform.HEIGHT){ //fix for going thru platform
+				that.distance -= that.fallSpeed;
 				that.fallSpeed = that.fallSpeed + 0.5;
+			}
 		} else {
 			that.fallStop();
 		}

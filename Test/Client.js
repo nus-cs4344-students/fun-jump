@@ -1,6 +1,6 @@
 "use strict"; 
-console.log("CLIENTHI");
 function Client(){
+	var socket;         // socket used to connect to server 
 	var playArea;
 	var counter;
 	var initGUI;
@@ -8,6 +8,41 @@ function Client(){
 	var counter = 0;
 	var playerStopped = true;
 	var keyState = {};
+	
+    var sendToServer = function (msg) {
+        socket.send(JSON.stringify(msg));
+    }
+	
+    var appendMessage = function(location, msg) {
+        var prev_msgs = document.getElementById(location).innerHTML;
+        document.getElementById(location).innerHTML = "[" + new Date().toString() + "] " + msg + "<br />" + prev_msgs;
+    }
+	
+    var initNetwork = function() {
+        // Attempts to connect to game server
+        try {
+            socket = new SockJS("http://" + FunJump.SERVER_NAME + ":" + FunJump.PORT + "/FunJump");
+            socket.onmessage = function (e) {
+                var message = JSON.parse(e.data);
+                switch (message.type) {
+                case "message": 
+                    appendMessage("serverMsg", message.content);
+                    break;
+				case "map":
+					convertToPlatforms(message.content);
+					break;
+                default: 
+					//convertToPlatforms(message);
+					//console.log(platforms);
+					appendMessage("serverMsg", "unhandled meesage type " + message.type);
+					break;
+                }
+            }
+        } catch (e) {
+            console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + FunJump.PORT);
+        }
+    }
+	
 	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
@@ -25,10 +60,11 @@ function Client(){
 	
     this.start = function() {
         // Initialize game objects
-        player = new Player();
+        player = new Player(1);
+		initNetwork();
         initGUI();
         setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-		GameLoop();
+		setTimeout(function() {GameLoop();}, 1500);
     }
 	
 	var render = function() {
@@ -42,29 +78,17 @@ function Client(){
         context.fillStyle = "#000000";
         context.fillRect(0, 0, playArea.width, playArea.height);
 
-		context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
+		context.fillStyle = player.color;
+		context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
+		//context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
 		
 		drawPlatforms(context);
 		if(player.screenMove == true){
 			platforms.forEach(function(platform,ind){
 				platform.y += player.jumpSpeed;	//Move the platform accordingly.
-				if(platform.y > FunJump.HEIGHT){
-					platforms[ind] = new Platform(Math.random() * (FunJump.WIDTH - Platform.WIDTH), platform.y - FunJump.HEIGHT, 0);
-					console.log(ind);
-				}
 			});
 		}
     }
-
-	/*var DrawBox = function(){
-		ctx.fillStyle = '#000'
-		ctx.beginPath();
-		ctx.rect(ax,ay,vx,vy);
-		ctx.closePath();
-		ctx.fill();
-		ax ++;
-		ay ++;
-	};*/
 
 	var GameLoop = function(){
 		checkMovement();
@@ -76,6 +100,7 @@ function Client(){
 	var checkPlayerFall = function(e){
 		if (player.isJumping) player.checkJump();
 		if (player.isFalling) player.checkFall();
+		//console.log("Player has travelled " + player.distance);
 	}
 	
 	var checkMovement = function(e){
@@ -90,25 +115,35 @@ function Client(){
 		}
 	}
 	
-	var noOfPlatforms = 7; 
+	var totalNoOfPlatforms = 20;
+	var noOfPlatforms = 5;
+	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
 	
-	var generatePlatforms = function(){
-		var position = 0, type;
+	var convertToPlatforms = function(p){
+	console.log("HI");
+		for(var i = 0; i < p.length; i++){
+			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
+		}
+	}
+	
+/*	var generatePlatforms = function(){
+		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
 		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
-		for (var i = 0; i < noOfPlatforms; i++) {
-		type = ~~(Math.random()*5);
-		if (type == 0) type = 1;
-		else type = 0;
-		//it's 5 times more possible to get 'ordinary' platform than 'super' one
-		platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
-		//random X position
-		if (position < FunJump.HEIGHT - Platform.HEIGHT) 
-			position = position + (FunJump.HEIGHT/ noOfPlatforms);
+		for (var i = 0; i < totalNoOfPlatforms; i++) {
+			type = Math.floor(Math.random()*5);	//1:5 ratio for special:normal
+			//console.log(type);
+			if (type == 0) type = 1;
+			else type = 0;
+			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
+			//random X position
+			//if (position < FunJump.HEIGHT - Platform.HEIGHT)
+			position = position - platformDist;
+			//console.log(platforms[i]);
 		}
 		//and Y position interval
 	};
-	generatePlatforms();
+	generatePlatforms();*/
 	
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
@@ -125,9 +160,11 @@ function Client(){
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
+				console.log(no);
 			}
 		});
 	}
 }
 var client = new Client();
+console.log("CLIENT Loaded");
 setTimeout(function() {client.start();}, 500);

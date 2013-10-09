@@ -11,8 +11,7 @@ function Platform (x, y, type){
 	that.onCollide = function(player){
 		player.fallStop();
 		if(type ==1)
-			player.jumpSpeed = 40;
-		console.log("HIT" + this);
+			player.jumpSpeed = Platform.SPECIALJUMPSPEED;
 	};
 	
 	that.x = x;
@@ -24,3 +23,5 @@ function Platform (x, y, type){
 
 Platform.HEIGHT = 20;
 Platform.WIDTH = 70;
+Platform.SPECIALJUMPSPEED = 40;
+global.Platform = Platform;
