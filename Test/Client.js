@@ -5,17 +5,24 @@ function Client(){
 	var counter;
 	var initGUI;
 	var player;
+	var opponent;
 	var counter = 0;
 	var playerStopped = true;
 	var keyState = {};
+	var pid = 0;
 	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
 	
     var appendMessage = function(location, msg) {
-        var prev_msgs = document.getElementById(location).innerHTML;
-        document.getElementById(location).innerHTML = "[" + new Date().toString() + "] " + msg + "<br />" + prev_msgs;
+		if(location=="clientMsg"){
+			document.getElementById(location).innerHTML = msg;
+		}
+		else{
+			var prev_msgs = document.getElementById(location).innerHTML;
+			document.getElementById(location).innerHTML = "[" + new Date().toString() + "] " + msg + "<br />" + prev_msgs;
+		}
     }
 	
     var initNetwork = function() {
@@ -31,9 +38,15 @@ function Client(){
 				case "map":
 					convertToPlatforms(message.content);
 					break;
+				case "newplayer":
+					pid = message.pid;
+					opponent = new Player(2);
+					opponent.distance = 1000;
+					break;
+				case "move":
+					opponent.y = FunJump.HEIGHT - (message.distance - player.yRel);
+					opponent.x = message.x;
                 default: 
-					//convertToPlatforms(message);
-					//console.log(platforms);
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
                 }
@@ -64,13 +77,12 @@ function Client(){
 		initNetwork();
         initGUI();
         setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-		setTimeout(function() {GameLoop();}, 1500);
+		setTimeout(function() {GameLoop();}, 1000);
     }
 	
 	var render = function() {
         // Get context
         var context = playArea.getContext("2d");
-
         // Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
 
@@ -88,19 +100,28 @@ function Client(){
 				platform.y += player.jumpSpeed;	//Move the platform accordingly.
 			});
 		}
+		if(opponent != null){
+			generateOpponent(context);
+		}
     }
 
+	var generateOpponent = function(context){
+		context.fillStyle = opponent.color;
+		context.fillRect(opponent.x, opponent.y, Player.WIDTH, Player.HEIGHT);
+	}
 	var GameLoop = function(){
 		checkMovement();
 		checkPlayerFall();
 		checkCollision();
+		//appendMessage("clientMsg","X: " + player.x + "<BR/>Y: " + player.y + "<BR/>Dist: "+player.distance);
 		setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
 	};
 
 	var checkPlayerFall = function(e){
 		if (player.isJumping) player.checkJump();
 		if (player.isFalling) player.checkFall();
-		//console.log("Player has travelled " + player.distance);
+		if(pid!=0)
+			sendToServer({type:"move", x: player.x, distance: player.distance});
 	}
 	
 	var checkMovement = function(e){
@@ -121,29 +142,10 @@ function Client(){
 	var platforms = [];
 	
 	var convertToPlatforms = function(p){
-	console.log("HI");
 		for(var i = 0; i < p.length; i++){
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
 		}
 	}
-	
-/*	var generatePlatforms = function(){
-		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
-		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
-		for (var i = 0; i < totalNoOfPlatforms; i++) {
-			type = Math.floor(Math.random()*5);	//1:5 ratio for special:normal
-			//console.log(type);
-			if (type == 0) type = 1;
-			else type = 0;
-			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
-			//random X position
-			//if (position < FunJump.HEIGHT - Platform.HEIGHT)
-			position = position - platformDist;
-			//console.log(platforms[i]);
-		}
-		//and Y position interval
-	};
-	generatePlatforms();*/
 	
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
@@ -160,11 +162,11 @@ function Client(){
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
-				console.log(no);
 			}
 		});
 	}
 }
+
 var client = new Client();
 console.log("CLIENT Loaded");
-setTimeout(function() {client.start();}, 500);
+setTimeout(function() {client.start();}, 0);

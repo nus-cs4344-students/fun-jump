@@ -4,9 +4,6 @@ var LIB_PATH = "./";
 require(LIB_PATH + "FunJump.js");
 require(LIB_PATH + "Platform.js");
 
-
-
-
 function Server() {
     var port;         // Game port 
     var count;        // Keeps track how many people are connected to server 
@@ -24,7 +21,6 @@ function Server() {
 		var id;
 		for (id in sockets) {
 			sockets[id].write(JSON.stringify(msg));
-			console.log(id);
 		}
 	}
 	
@@ -41,27 +37,52 @@ function Server() {
 
             // reinitialize 
             count = 0;
-            nextPID = 1;
+            nextPID = 0;
             gameInterval = undefined;
             players = new Object;
             sockets = new Object;
-            
+            generatePlatforms();
+			
             // Upon connection established from a client socket
             sock.on('connection', function (conn) {
-			sockets[nextPID] = conn;
+				sockets[count] = conn;
                 console.log("connected");
-                // Sends to client
-                broadcast({type:"message", content:"There is now " + count + " players"});
-				broadcast({type:"map", content:platforms});
-                if (count == 2) {
+                if (count == 5) {
                     // Send back message that game is full
-                    unicast(conn, {type:"message", content:"The game is full.  Come back later"});
+                    //unicast(conn, {type:"message", content:"The game is full.  Come back later"});
                     // TODO: force a disconnect
                 } else {
-					
-                    // create a new player
-                    //newPlayer(conn);
+					// Sends to client
+					broadcast({type:"message", content:"There is now " + count + " players"});
+					unicast(conn, {type:"map", content:platforms});
+					//if(count == 1){	//2nd player has joined!
+					unicast(sockets[count], {type:"newplayer", content:"New Player Joined!", pid:count});
+						//unicast(sockets[2], {type:"newplayer", content:"New Player Joined!"});
+					//}
+					count++;
                 }
+				
+				conn.on('close', function () {
+					console.log("HI");
+				});
+				
+				conn.on('data', function (data) {
+					var message = JSON.parse(data);
+					
+					switch (message.type) {
+                        // one of the player starts the game.
+                        case "move": 
+                            if(conn == sockets[0]){
+							}
+								//console.log("Player 1");
+							else if(conn == sockets[1])
+								unicast(sockets[0],message);
+                            break;
+                        default:
+                            console.log("Unhandled " + message.type);
+                    }
+				});
+				
             }); // socket.on("connection"
 
             // Standard code to starts the Pong server and listen
@@ -71,16 +92,13 @@ function Server() {
             sock.installHandlers(httpServer, {prefix:'/FunJump'});
             httpServer.listen(FunJump.PORT, '0.0.0.0');
             app.use(express.static(__dirname));
-			generatePlatforms();
-			console.log(platforms[0]);
+
 
         } catch (e) {
             console.log("Cannot listen to " + port);
             console.log("Error: " + e);
         }
     }
-	
-
 	
 	var generatePlatforms = function(){
 		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;

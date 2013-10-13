@@ -4,6 +4,9 @@ function Player(id) {
 	//this.image;
 	this.x;
 	this.y;
+	this.yRel = 0;
+	this.yBtm = 0;
+	
 	this.image = new Image();
 	if(id==1){
 		//this.image.src = "Person.png";
@@ -19,7 +22,7 @@ function Player(id) {
 	var that = this;
 	var vx = 0;
 	var vy = 0;
-	this.distance = 0;
+	this.distance = Player.HEIGHT;
 	
 	this.isFalling = true;
 	this.isJumping = false;
@@ -32,11 +35,20 @@ function Player(id) {
 	that.setPosition = function(x,y){
 		that.x = x;
 		that.y = y;
+		//var xx = (FunJump.HEIGHT - (that.y+Player.HEIGHT));
+		//console.log(xx);
+		//that.yBtm = that.distance - (xx);
 	}
 
 	that.getVX = function(){
 		return vx;
 	}
+	
+	that.setRelY = function(){	//Sets the bottom of the map based on the relative y postion
+		that.yRel = that.distance - (FunJump.HEIGHT - that.y);
+		//console.log(that.distance);
+	}
+	
 	that.move = function(direction){
 		if(direction == 'left' || direction == 'right' || direction == 'stop'){
 			if(that.x < 0){
@@ -73,7 +85,7 @@ function Player(id) {
 	if (that.isJumping == false && that.isFalling == false) {
 		that.fallSpeed = 0;
 		that.isJumping = true;
-		that.jumpSpeed = 17;
+		that.jumpSpeed = Player.JUMPSPEED;
 		}
 	}
 	
@@ -87,21 +99,24 @@ function Player(id) {
 		}
 		
 		that.distance += that.jumpSpeed;
+		that.setRelY();
 		that.jumpSpeed--;
 
 		if (that.jumpSpeed == 0) {
 			that.isJumping = false;
 			that.isFalling = true;
-			that.fallSpeed = 1;
+			that.fallSpeed = Player.FALLSPEED;
 		}
 	}
 	
 	that.checkFall = function(){
 		if (that.y < FunJump.HEIGHT - Player.HEIGHT) {
-			that.setPosition(that.x, that.y + that.fallSpeed);
+			that.screenMove = false;
 			if(that.fallSpeed < Platform.HEIGHT){ //fix for going thru platform
+				that.setPosition(that.x, that.y + that.fallSpeed);
 				that.distance -= that.fallSpeed;
-				that.fallSpeed = that.fallSpeed + 0.5;
+				that.setRelY();
+				that.fallSpeed = that.fallSpeed + (Player.FALLSPEED*0.5);
 			}
 		} else {
 			that.fallStop();
@@ -119,4 +134,6 @@ function Player(id) {
 Player.HEIGHT = 30;
 Player.WIDTH = 30;
 Player.XACCELERATION = 1.5;
+Player.JUMPSPEED = 17;
+Player.FALLSPEED = 1;
 global.Player = Player;
