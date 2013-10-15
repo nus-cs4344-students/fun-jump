@@ -1,4 +1,4 @@
-"use strict"; 
+"use strict";
 
 var LIB_PATH = "./";
 require(LIB_PATH + "FunJump.js");
@@ -6,10 +6,10 @@ require(LIB_PATH + "Platform.js");
 
 
 function Server(PORT) {
-    var port;         // Game port 
-    var count;        // Keeps track how many people are connected to server 
-    var nextPID;      // PID to assign to next connected player (i.e. which player slot is open) 
-    var gameInterval; // Interval variable used for gameLoop 
+    var port;         // Game port
+    var count;        // Keeps track how many people are connected to server
+    var nextPID;      // PID to assign to next connected player (i.e. which player slot is open)
+    var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
     var players;      // Associative array for players, indexed via socket ID
     var p1, p2;       // Player 1 and 2.
@@ -17,18 +17,18 @@ function Server(PORT) {
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
-	
+
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
 			sockets[id].write(JSON.stringify(msg));
 		}
 	}
-	
+
     var unicast = function (socket, msg) {
         socket.write(JSON.stringify(msg));
     }
-	
+
     this.start = function () {
     	console.log("To start a game server on port " + PORT);
         try {
@@ -37,14 +37,14 @@ function Server(PORT) {
             var sockjs = require('sockjs');
             var sock = sockjs.createServer();
 
-            // reinitialize 
+            // reinitialize
             count = 0;
             nextPID = 0;
             gameInterval = undefined;
             players = new Object;
             sockets = new Object;
             generatePlatforms();
-			
+
             // Upon connection established from a client socket
             sock.on('connection', function (conn) {
 				sockets[count] = conn;
@@ -63,14 +63,14 @@ function Server(PORT) {
 					//}
 					count++;
                 }
-				
+
 				conn.on('close', function () {
 					console.log("Disconnect");
 				});
-				
+
 				conn.on('data', function (data) {
 					var message = JSON.parse(data);
-					
+
 					switch (message.type) {
                         // one of the player starts the game.
 						case "updatePlayerPosition":
@@ -82,11 +82,39 @@ function Server(PORT) {
 								unicast(sockets[1],message);
 							}
 							break;
+
+						case "hit":
+                        	if(conn == sockets[1]){
+								unicast(sockets[0],message);
+							}
+							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
+								unicast(sockets[1],message);
+							}
+							break;
+
+						case "fire":
+                        	if(conn == sockets[1]){
+								unicast(sockets[0],message);
+							}
+							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
+								unicast(sockets[1],message);
+							}
+							break;
+
+						case "projGone":
+                        	if(conn == sockets[1]){
+								unicast(sockets[0],message);
+							}
+							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
+								unicast(sockets[1],message);
+							}
+							break;
+
                         default:
                             console.log("Unhandled " + message.type);
                     }
 				});
-				
+
             }); // socket.on("connection"
 
             // Standard code to starts the Pong server and listen
@@ -103,7 +131,7 @@ function Server(PORT) {
             console.log("Error: " + e);
         }
     }
-	
+
 	var generatePlatforms = function(){
 		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
 		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
@@ -118,7 +146,7 @@ function Server(PORT) {
 		}
 		//and Y position interval
 	};
-	
+
 }
 // var gameServer = new Server();
 // gameServer.start();

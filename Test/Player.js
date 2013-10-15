@@ -1,4 +1,4 @@
-"use strict"; 
+"use strict";
 console.log("Player Loaded");
 function Player(id) {
 	var that = this;
@@ -11,7 +11,11 @@ function Player(id) {
 	that.yForOpp = 0;
 	that.direction = "stop";
 	that.receivedDirection = "nil";
-	
+
+	that.projectiles = [];
+	that.projectileTimer = 0;
+	that.isHit = false;
+
 	that.image = new Image();
 	if(id==1){
 		//this.image.src = "Person.png";
@@ -21,17 +25,17 @@ function Player(id) {
 		//this.image.src = "";
 		that.color = "#555";
 	}
-	
+
 	that.vx = 0;
-	
+
 	that.isFalling = true;
 	that.isJumping = false;
-	
+
 	that.jumpSpeed = 0;
 	that.fallSpeed = 1;
-	
+
 	that.screenMove = false;
-	
+
 	that.setPosition = function(x,y){
 		that.x = x;
 		that.y = y;
@@ -43,9 +47,9 @@ function Player(id) {
 		that.yRel = that.distance - (FunJump.HEIGHT - that.y);
 		//console.log(that.distance);
 	}
-	
+
 	that.move = function(direction){
-		if(direction == 'left' || direction == 'right' || direction == 'stop'){
+		if(that.isHit == false && (direction == 'left' || direction == 'right' || direction == 'stop')){
 			if(that.x < 0){
 				that.vx = 0;
 				that.x = 0;
@@ -79,7 +83,7 @@ function Player(id) {
 			console.log("UP");
 		}
 	}
-	
+
 	that.jump = function() {	//Set start.
 	if (that.isJumping == false && that.isFalling == false) {
 		that.fallSpeed = 0;
@@ -87,7 +91,7 @@ function Player(id) {
 		that.jumpSpeed = Player.JUMPSPEED;
 		}
 	}
-	
+
 	that.checkJump = function() {
 		if(that.y > FunJump.HEIGHT * 0.4){
 			that.setPosition(that.x, that.y - that.jumpSpeed);
@@ -96,7 +100,7 @@ function Player(id) {
 		else{
 			that.screenMove = true;
 		}
-		
+
 		that.distance += that.jumpSpeed;
 		that.setRelY();
 		that.jumpSpeed--;
@@ -107,7 +111,7 @@ function Player(id) {
 			that.fallSpeed = Player.FALLSPEED;
 		}
 	}
-	
+
 	that.checkFall = function(){
 		if (that.y < FunJump.HEIGHT - Player.HEIGHT) {
 			that.screenMove = false;
@@ -121,12 +125,12 @@ function Player(id) {
 			that.fallStop();
 		}
 	}
-	
+
 	that.fallStop = function(){
 		//stop falling, start jumping again
 		that.isFalling = false;
 		that.fallSpeed = 0;
-		that.jump();    
+		that.jump();
 	}
 
 }
@@ -135,4 +139,5 @@ Player.WIDTH = 30;
 Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
+Player.SHOOTDELAY = 200;
 global.Player = Player;
