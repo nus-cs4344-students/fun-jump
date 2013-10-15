@@ -396,4 +396,4 @@ function Client(){
 
 var client = new Client();
 console.log("CLIENT Loaded");
-setTimeout(function() {client.start();}, 0);
+setTimeout(function() {client.start();}, 1500);
