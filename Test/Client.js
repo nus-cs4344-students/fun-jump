@@ -31,7 +31,7 @@ function Client(){
     var initNetwork = function() {
         // Attempts to connect to game server
         try {
-            socket = new SockJS("http://" + FunJump.SERVER_NAME + ":" + FunJump.PORT + "/FunJump");
+            socket = new SockJS("http://" + FunJump.SERVER_NAME + ":" + location.port + "/FunJump");
             socket.onmessage = function (e) {
                 var message = JSON.parse(e.data);
                 switch (message.type) {
