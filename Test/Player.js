@@ -1,49 +1,44 @@
 "use strict"; 
 console.log("Player Loaded");
 function Player(id) {
+	var that = this;
 	//this.image;
-	this.x;
-	this.y;
-	this.yRel = 0;
-	this.yBtm = 0;
+	that.x = 0;
+	that.y = FunJump.HEIGHT-Player.HEIGHT;
+	that.vx = 0;
+	that.distance = Player.HEIGHT;
+	that.yRel = 0;
+	that.yForOpp = 0;
+	that.direction = "stop";
+	that.receivedDirection = "nil";
 	
-	this.image = new Image();
+	that.image = new Image();
 	if(id==1){
 		//this.image.src = "Person.png";
-		this.color = "#AAA";
+		that.color = "#AAA";
 	}
 	else if (id==2){
 		//this.image.src = "";
-		this.color = "#555";
+		that.color = "#555";
 	}
-	this.x = 0;
-	this.y = FunJump.HEIGHT-Player.HEIGHT;
 	
-	var that = this;
-	var vx = 0;
-	var vy = 0;
-	this.distance = Player.HEIGHT;
+	that.vx = 0;
 	
-	this.isFalling = true;
-	this.isJumping = false;
+	that.isFalling = true;
+	that.isJumping = false;
 	
-	this.jumpSpeed = 0;
-	this.fallSpeed = 1;
+	that.jumpSpeed = 0;
+	that.fallSpeed = 1;
 	
-	this.screenMove = false;
+	that.screenMove = false;
 	
 	that.setPosition = function(x,y){
 		that.x = x;
 		that.y = y;
 		//var xx = (FunJump.HEIGHT - (that.y+Player.HEIGHT));
 		//console.log(xx);
-		//that.yBtm = that.distance - (xx);
 	}
 
-	that.getVX = function(){
-		return vx;
-	}
-	
 	that.setRelY = function(){	//Sets the bottom of the map based on the relative y postion
 		that.yRel = that.distance - (FunJump.HEIGHT - that.y);
 		//console.log(that.distance);
@@ -52,28 +47,32 @@ function Player(id) {
 	that.move = function(direction){
 		if(direction == 'left' || direction == 'right' || direction == 'stop'){
 			if(that.x < 0){
-				vx = 0;
+				that.vx = 0;
 				that.x = 0;
 			}
 			else if(that.x > FunJump.WIDTH-Player.WIDTH){
-				vx = 0;
+				that.vx = 0;
 				that.x = FunJump.WIDTH - Player.WIDTH;
 			}
 			else{
 				if(direction == 'left'){
-					vx = vx - Player.XACCELERATION;
+					that.vx = that.vx - Player.XACCELERATION;
+					that.direction = "left";
 				}
-				else if(direction == 'right')
-					vx = vx + Player.XACCELERATION;
+				else if(direction == 'right'){
+					that.vx = that.vx + Player.XACCELERATION;
+					that.direction = "right";
+				}
 				else if(direction == 'stop'){
-					if(vx > Player.XACCELERATION)
-						vx = vx - (Player.XACCELERATION+0.5);
-					else if(vx < -Player.XACCELERATION)
-						vx = vx + (Player.XACCELERATION+0.5);
+					if(that.vx > Player.XACCELERATION)
+						that.vx = that.vx - (Player.XACCELERATION+0.5);
+					else if(that.vx < -Player.XACCELERATION)
+						that.vx = that.vx + (Player.XACCELERATION+0.5);
 					else
-						vx = 0;
+						that.vx = 0;
+					that.direction = "stop";
 				}
-				that.x = that.x+vx;
+				that.x = that.x+that.vx;
 			}
 		}
 		else if(direction == 'up'){

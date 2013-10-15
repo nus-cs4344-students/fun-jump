@@ -5,11 +5,14 @@ function Client(){
 	var counter;
 	var initGUI;
 	var player;
-	var opponent;
+	var opponent = new Player(2);
 	var counter = 0;
 	var playerStopped = true;
 	var keyState = {};
 	var pid = 0;
+	var connected = false;
+	var xMaxDist = 15;
+	var xCurr = 0;
 	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -37,15 +40,15 @@ function Client(){
                     break;
 				case "map":
 					convertToPlatforms(message.content);
+								connected = true;
 					break;
 				case "newplayer":
 					pid = message.pid;
 					opponent = new Player(2);
-					opponent.distance = 1000;
 					break;
-				case "move":
-					opponent.y = FunJump.HEIGHT - (message.distance - player.yRel);
-					opponent.x = message.x;
+				case "updateOpponent":
+					updateOpponent(message);
+					break;
                 default: 
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
@@ -76,8 +79,10 @@ function Client(){
         player = new Player(1);
 		initNetwork();
         initGUI();
-        setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-		setTimeout(function() {GameLoop();}, 1000);
+		setTimeout(function() {
+			GameLoop();
+			setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
+		}, 1000);
     }
 	
 	var render = function() {
@@ -91,7 +96,8 @@ function Client(){
         context.fillRect(0, 0, playArea.width, playArea.height);
 
 		context.fillStyle = player.color;
-		context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
+		//context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
+		context.fillRect(player.x,(FunJump.HEIGHT - (player.distance - player.yRel)),Player.WIDTH,Player.HEIGHT);
 		//context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
 		
 		drawPlatforms(context);
@@ -101,38 +107,106 @@ function Client(){
 			});
 		}
 		if(opponent != null){
-			generateOpponent(context);
+			renderOpponent(context);
 		}
     }
 
-	var generateOpponent = function(context){
+	var renderOpponent = function(context){
 		context.fillStyle = opponent.color;
-		context.fillRect(opponent.x, opponent.y, Player.WIDTH, Player.HEIGHT);
+		context.fillRect(opponent.x, opponent.yForOpp, Player.WIDTH, Player.HEIGHT);
 	}
+	
+	var updateOpponent = function(message){
+		opponent.distance = message.playerDistance;
+		opponent.isFalling = message.playerIsFalling;
+		opponent.isJumping = message.playerIsJumping;
+		//opponent.y = message.playerY;
+		opponent.x = message.playerX;
+		opponent.vx = message.playerVX;
+		opponent.jumpSpeed = message.playerJumpSpeed;
+		opponent.fallSpeed = message.playerFallSpeed;
+		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
+		opponent.receivedDirection = message.playerDirection;
+	}
+	
 	var GameLoop = function(){
 		checkMovement();
 		checkPlayerFall();
 		checkCollision();
-		//appendMessage("clientMsg","X: " + player.x + "<BR/>Y: " + player.y + "<BR/>Dist: "+player.distance);
+		checkOpponentFall();
 		setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
+		
 	};
 
-	var checkPlayerFall = function(e){
-		if (player.isJumping) player.checkJump();
-		if (player.isFalling) player.checkFall();
-		if(pid!=0)
-			sendToServer({type:"move", x: player.x, distance: player.distance});
+	var jumping = 0;
+	var falling = 0;
+
+	var checkOpponentFall = function(){
+		if (opponent.isJumping){
+			opponent.checkJump();
+		}
+		if (opponent.isFalling){
+			opponent.checkFall();
+		}
+		
+		opponent.move(opponent.receivedDirection);
+		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
 	}
 	
+	var checkPlayerFall = function(){
+		if (player.isJumping){
+			player.checkJump();
+			jumping ++;
+			falling = 0;
+		}
+		if (player.isFalling){
+			player.checkFall();
+			falling ++;
+			jumping = 0;
+		}
+		if(connected && (falling == 1 || jumping == 1)){
+			updatePlayerVariables();
+		}
+	}
+	
+	var updatePlayerVariables = function(){
+		sendToServer({type:"updatePlayerPosition",
+			playerX: player.x,
+			playerY: player.y,
+			playerVX: player.vx,
+			playerIsFalling: player.isFalling,
+			playerIsJumping: player.isJumping,
+			playerDistance: player.distance,
+			playerJumpSpeed: player.jumpSpeed,
+			playerFallSpeed: player.fallSpeed,
+			playerDirection: player.direction});
+	}
+	
+	var stopped = 0;
 	var checkMovement = function(e){
 		if	((keyState[37] || keyState[65]) && (keyState[39] || keyState[68]))	//Press both left and right!
 			player.move('stop');
-		else if (keyState[37] || keyState[65])
+		else if (keyState[37] || keyState[65]){
 			player.move('left');
-		else if (keyState[39] || keyState[68])
+			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
+				xCurr = player.x;
+				updatePlayerVariables();
+			}
+			stopped = 0;
+		}
+		else if (keyState[39] || keyState[68]){
 			player.move('right');
+			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
+				xCurr = player.x;
+				updatePlayerVariables();
+			}
+			stopped = 0;
+		}
 		else{	//Player Stopped
-			player.move('stop')
+			player.move('stop');
+			if(stopped == 1)
+				updatePlayerVariables();
+			stopped ++;
 		}
 	}
 	
@@ -162,7 +236,16 @@ function Client(){
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
+				//console.log("Player Distance: " + player.distance + "Platform Y : " + (500- platform.origY));
+				player.distance = (500-platform.origY) + Player.HEIGHT;
 			}
+/*			if(opponent.isFalling && 
+			(opponent.x < platform.x + Platform.WIDTH) &&
+			(opponent.x + Player.WIDTH > platform.x) &&
+			(opponent.y + Player.HEIGHT > platform.y) &&
+			(opponent.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+				platform.onCollide(opponent);
+			}*/ //NEED TO FIX YREL forplatforms 
 		});
 	}
 }

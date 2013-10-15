@@ -1,7 +1,7 @@
 function Platform (x, y, type){
 //function takes position and platform type
 	var that=this;
-
+	that.origY = y;
 	that.color = '#ABCDEF';
 
 	if (type === 1) {

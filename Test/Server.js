@@ -63,7 +63,7 @@ function Server() {
                 }
 				
 				conn.on('close', function () {
-					console.log("HI");
+					console.log("Disconnect");
 				});
 				
 				conn.on('data', function (data) {
@@ -71,13 +71,15 @@ function Server() {
 					
 					switch (message.type) {
                         // one of the player starts the game.
-                        case "move": 
-                            if(conn == sockets[0]){
-							}
-								//console.log("Player 1");
-							else if(conn == sockets[1])
+						case "updatePlayerPosition":
+							message.type = "updateOpponent";
+							if(conn == sockets[1]){
 								unicast(sockets[0],message);
-                            break;
+							}
+							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
+								unicast(sockets[1],message);
+							}
+							break;
                         default:
                             console.log("Unhandled " + message.type);
                     }
@@ -110,9 +112,7 @@ function Server() {
 			else type = 0;
 			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
 			//random X position
-			//if (position < FunJump.HEIGHT - Platform.HEIGHT)
 			position = position - platformDist;
-			//console.log(platforms[i]);
 		}
 		//and Y position interval
 	};
