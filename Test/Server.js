@@ -4,7 +4,8 @@ var LIB_PATH = "./";
 require(LIB_PATH + "FunJump.js");
 require(LIB_PATH + "Platform.js");
 
-function Server() {
+
+function Server(PORT) {
     var port;         // Game port 
     var count;        // Keeps track how many people are connected to server 
     var nextPID;      // PID to assign to next connected player (i.e. which player slot is open) 
@@ -29,6 +30,7 @@ function Server() {
     }
 	
     this.start = function () {
+    	console.log("To start a game server on port " + PORT);
         try {
             var express = require('express');
             var http = require('http');
@@ -90,7 +92,7 @@ function Server() {
             var app = express();
             var httpServer = http.createServer(app);
             sock.installHandlers(httpServer, {prefix:'/FunJump'});
-            httpServer.listen(FunJump.PORT, '0.0.0.0');
+            httpServer.listen(PORT, '0.0.0.0');
             app.use(express.static(__dirname));
 
 
@@ -118,6 +120,7 @@ function Server() {
 	};
 	
 }
-var gameServer = new Server();
-gameServer.start();
-console.log("SERVER LOADED");
+// var gameServer = new Server();
+// gameServer.start();
+// console.log("SERVER LOADED");
+global.Server = Server
