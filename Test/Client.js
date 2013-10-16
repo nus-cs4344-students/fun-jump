@@ -79,7 +79,7 @@ function Client(){
                 }
             }
         } catch (e) {
-            console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + FunJump.PORT);
+            console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + loction.port);
         }
     }
 
