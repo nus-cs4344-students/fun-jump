@@ -18,9 +18,9 @@ function Projectile(x, y, trajectory, size, color, speed, distance) {
 
 
 // Static variables
-Projectile.SPEED = 1000;
-Projectile.COLOR = '#0f0';
-Projectile.SIZE = 2;
+Projectile.SPEED = 0.5;
+Projectile.COLOR = '#FFFF00';
+Projectile.SIZE = 5;
 
 // For node.js require
 global.Projectile = Projectile;

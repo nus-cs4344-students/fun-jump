@@ -57,6 +57,7 @@ function Client(){
 										message.projectile.size, message.projectile.color, message.projectile.speed,
 										message.projectile.distance);
 					aProjectile.updatePos((Date.now()-message.fireTime)/1000);
+					aProjectile.y = player.distance-aProjectile.distance+player.y;
 					opponent.projectiles.splice(message.projkey,0,aProjectile);
 					break;
 
@@ -69,7 +70,7 @@ function Client(){
 					//sendToServer({type:"hit", projkey: key});
 					player.isHit = true;
 					opponent.projectiles.splice(message.projkey,1);
-					setTimeout(function(){player.isHit=false;},4*1000/FunJump.FRAME_RATE);
+					setTimeout(function(){player.isHit=false;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 					break;
 
                 default:
@@ -105,6 +106,7 @@ function Client(){
 		//Player shoots by clicking on the canvas
 		playArea.addEventListener('mousedown', function(e) {
 		    mouse.down = true;
+		    fireBullet();
 		});
 		playArea.addEventListener('mouseup', function(e) {
 		    mouse.down = false;
@@ -165,16 +167,16 @@ function Client(){
 			renderOpponent(context);
 			opponent.projectiles.forEach(function(projectile,ind){
 				//Draw the bullet if it is within the player's screen
-				if(Math.abs(projectile.distance+Projectile.SIZE-player.distance)<FunJump.HEIGHT/2){
-					renderProjectile(projectile);
+				if(projectile.distance+Projectile.SIZE>player.yRel){
+					renderProjectile(context,projectile);
 				}
    			});
 		}
 
 		player.projectiles.forEach(function(projectile,ind){
 			//Draw the bullet if it is within the player's screen
-			if(Math.abs(projectile.distance+Projectile.SIZE-player.distance)<FunJump.HEIGHT/2){
-				renderProjectile(projectile);
+			if(projectile.distance+Projectile.SIZE>player.yRel){
+				renderProjectile(context,projectile);
 			}
    		});
     }
@@ -188,7 +190,7 @@ function Client(){
 	var renderProjectile = function(context, projectile){
 		context.fillStyle = projectile.color;
 		context.beginPath();
-		context.arc(projectile.x, projectile.y, projectile.SIZE, 0, Math.PI*2, true);
+		context.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI*2, true);
 		context.closePath();
 		context.fill();
 	}
@@ -208,23 +210,7 @@ function Client(){
 
 	var GameLoop = function(){
 
-		if (mouse.down && Date.now() - player.projectileTimer > Player.SHOOTDELAY) {
-	        var newproj = new Projectile(
-	                player.x + Player.WIDTH / 2,
-	                player.y + Player.HEIGHT / 2,
-	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, mouse.x, mouse.y),
-	                Projectile.SIZE,
-	                Projectile.COLOR,
-	                Projectile.SPEED,
-	                player.distance-Player.HEIGHT/2
-	           );
-
-	        var projKey = player.projectiles.push(newproj) - 1;
-	        player.projectileTimer = Date.now();
-
-	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
-    	}
-
+		//console.log(player.projectiles);
 		for (var key in player.projectiles) {
 	        player.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
 	        if (player.projectiles[key].x-player.projectiles[key].size > FunJump.WIDTH || player.projectiles[key].x+player.projectiles[key].size <0)
@@ -244,7 +230,6 @@ function Client(){
 		    }
 		}
 
-		collisionDetect();
 
 		if(player.isHit == false){
 			checkMovement();
@@ -256,9 +241,33 @@ function Client(){
 			checkOpponentFall();
 		}
 
+		collisionDetect();
+
 		setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
 
 	};
+
+	var fireBullet = function(){
+
+		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.isHit == false) {
+	        var newproj = new Projectile(
+	                player.x + Player.WIDTH / 2,
+	                player.y + Player.HEIGHT / 2,
+	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, mouse.x, mouse.y),
+	                Projectile.SIZE,
+	                Projectile.COLOR,
+	                Projectile.SPEED,
+	                player.distance-Player.HEIGHT/2
+	           );
+
+	        var projKey = player.projectiles.length;
+	        player.projectiles[projKey] = newproj;
+
+	        player.projectileTimer = Date.now();
+
+	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
+    	}
+	}
 
 	//detect a bullet hit
 	var collisionDetect = function(){
@@ -266,15 +275,19 @@ function Client(){
 		    for (var key in player.projectiles) {
 		        if (player.projectiles[key] != undefined) {
 		 				if(opponent != null && opponent.isHit == false){
-		 					if(((Math.abs(player.projectiles[key].x-opponent.x)<player.projectiles[key].size)
-		 					|| (Math.abs(player.projectiles[key].x-opponent.x-Player.WIDTH)<player.projectiles[key].size))
-		 					&& ((Math.abs(player.projectiles[key].distance-opponent.distance)<player.projectiles[key].size)
-		 					|| (Math.abs(player.projectiles[key].distance-opponent.distance+Player.HEIGHT)<player.projectiles[key].size)))
+		 					// if(((Math.abs(player.projectiles[key].x-opponent.x)<player.projectiles[key].size)
+		 					// || (Math.abs(player.projectiles[key].x-opponent.x-Player.WIDTH)<player.projectiles[key].size))
+		 					// && ((Math.abs(player.projectiles[key].distance-opponent.distance)<player.projectiles[key].size)
+		 					// || (Math.abs(player.projectiles[key].distance-opponent.distance+Player.HEIGHT)<player.projectiles[key].size)))
+		 					var dist = Math.sqrt(Math.pow((player.projectiles[key].x - opponent.x - Player.WIDTH/2), 2) + Math.pow((player.projectiles[key].y - opponent.y - Player.HEIGHT/2), 2));
+		 					console.log(dist);
+		 					if(dist < 3*Player.WIDTH/2 + Projectile.SIZE)
 		 					{
+		 						console.log("Hit");
 		 						opponent.isHit = true;
 		 						player.projectiles.splice(key,1);
 		 						sendToServer({type:"hit", projkey: key});
-		 						setTimeout(function(){opponent.isHit=false;},4*1000/FunJump.FRAME_RATE);
+		 						setTimeout(function(){opponent.isHit=false;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 		 					}
 		 				}
 		        }

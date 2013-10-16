@@ -140,4 +140,5 @@ Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
 Player.SHOOTDELAY = 200;
+Player.FREEZE = 100;
 global.Player = Player;
