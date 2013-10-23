@@ -30,12 +30,19 @@ var broadcast = function (msg) {
 	}
 }
 
-sock.on('connection', function(conn){
-	connections.push(conn);
-	//send to new connections
-	console.log("New player connected in sockjs");
-	conn.write(JSON.stringify(players));
-});
+try{
+
+	sock.on('connection', function(conn){
+		connections.push(conn);
+		//send to new connections
+		console.log("New player connected in sockjs");
+		conn.write(JSON.stringify(players));
+	});
+
+}catch (e) {
+	console.log("Cannot listen to " + port);
+	console.log("Error: " + e);
+}
     
 app.get("/", function(req, res) {
   res.sendfile(__dirname+"/index.html");

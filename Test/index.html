@@ -37,13 +37,18 @@
 
 
 			initialSockets() = function(){
-				var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
-				socket.onmessage = function (e) {
+				try{
+					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
+					socket.onmessage = function (e) {
                 	var nums = JSON.parse(e.data);
                 	for (var i = 0; i < nums.length; i++){
 						$("#rm"+i+"_players").text(nums[i]);
 					}
                 };
+				}catch (e) {
+					console.log("Cannot listen to " + port);
+					console.log("Error: " + e);
+				}
 			}
 			joinRoom = function(num){
 				url = "http://"+FunJump.SERVER_NAME+":4344/join/"+num,
