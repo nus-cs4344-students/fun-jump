@@ -9,6 +9,7 @@
 			var global = {}; // For node.js require
 		</script>
 		<script type="text/javascript" src="./FunJump.js"></script>
+		<script type="text/javascript" src="./sockjs-0.3.min.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function(){
 				$("#manuScreen").height(FunJump.HEIGHT);
@@ -18,22 +19,32 @@
 				$("#gameImage").width(FunJump.WIDTH);
 				// $("#footer").css("margin-top",FunJump.WIDTH-$("#footer").height()-20);
 
-				//Add room click event handlers
-				$("#rm1").click(function(){
-					joinRoom(0);
-				})
-				$("#rm2").click(function(){
-					joinRoom(1);
-				})
-				$("#rm3").click(function(){
-					joinRoom(2);
-				})
-				$("#rm4").click(function(){
-					joinRoom(3);
-				})
-			})
+
+				$(".join_button").click(function(){
+					if($("#rm"+this.value+"_players").text()<4){
+						joinRoom(this.value);	
+					}else{
+						alert("This room is full, please choose another one.");
+					}	
+				});
+
+				$("li").css("text-align", "center" );
+
+				
+				initialSockets();				
+
+			});
 
 
+			initialSockets() = function(){
+				var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
+				socket.onmessage = function (e) {
+                	var nums = JSON.parse(e.data);
+                	for (var i = 0; i < nums.length; i++){
+						$("#rm"+i+"_players").text(nums[i]);
+					}
+                };
+			}
 			joinRoom = function(num){
 				url = "http://"+FunJump.SERVER_NAME+":4344/join/"+num,
 				$.ajax({
@@ -49,6 +60,22 @@
 		    		},
 		    		dataType: "json"
 		    	});
+			}
+
+			updateNumberOfPlayers = function(){
+				$.ajax({
+					type: 'GET',
+					url: "http://"+FunJump.SERVER_NAME+":4344/numOfPlayers",
+					success: function(data){
+						nums = data.numOfPlayers;
+						for (var i = 0; i < nums.length; i++){
+							$("#rm"+i+"_players").text(nums[i]);
+						}
+					},
+					error: function(data){
+						console.log("Failed "+data);
+					}
+				})
 			}
 
 			$(window).resize(function(){
@@ -75,16 +102,28 @@
          	      <ul data-role="listview" data-inset="true" data-dividertheme="a"> 
          	            <li data-role="list-divider">MENU</li> 
          	            <li>
-         	            	<button id="rm1">Room 1</button>
+         	            	Room 1:</br>
+         	            	Number of players: 
+         	            	<span id="rm0_players">0</span>/4
+         	            	<button class="join_button" id="rm0" value="0">Join</button>
          	            </li> 
          	            <li>
-         	            	<button id="rm2">Room 2</button>
+         	            	Room 2:</br>
+         	            	Number of players: 
+         	            	<span id="rm1_players" >0</span>/4
+         	            	<button class="join_button" id="rm1" value="1">Join</button>
          	            </li> 
          	            <li>
-         	            	<button id="rm3">Room 3</button>
+         	            	Room 3:</br>
+         	            	Number of players: 
+         	            	<span id="rm2_players">0</span>/4
+         	            	<button class="join_button" id="rm2" value="2">Join</button>
          	            </li> 
          	            <li>
-         	            	<button id="rm4">Room 4</button>
+         	            	Room 1:</br>
+         	            	Number of players: 
+         	            	<span id="rm3_players">0</span>/4
+         	            	<button class="join_button" id="rm3" value="3">Join</button>
          	            </li> 
          	      </ul>           
          	</div>   
