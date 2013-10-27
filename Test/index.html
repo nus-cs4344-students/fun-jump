@@ -36,7 +36,7 @@
 			});
 
 
-			initialSockets() = function(){
+			initialSockets = function(){
 				try{
 					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
 					socket.onmessage = function (e) {
