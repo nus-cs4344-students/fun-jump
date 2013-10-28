@@ -16,6 +16,8 @@ function Client(){
 
 	var mouse;
 
+	var imageRepository;
+
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -127,11 +129,26 @@ function Client(){
 
         player.projectileTimer = Date.now();
 
-		setTimeout(function() {
+		//Start game loop inside function loading images to ensure that all images are loaded beforehand
+        imageRepository = new ImageRepository();
+        checkImgLoaded();
+
+    }
+
+    var checkImgLoaded = function(){
+
+    	if(imageRepository.allImgLoaded === false){
+    		setTimeout(checkImgLoaded, 500);
+    	}
+    	else{
+    		console.log("Game loop starts");
+    		setTimeout(function() {
 			GameLoop();
 			setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-		}, 1000);
+						}, 1000);
+    	}
     }
+
 
 	var render = function() {
         // Get context
@@ -140,13 +157,20 @@ function Client(){
         context.clearRect(0, 0, playArea.width, playArea.height);
 
         // Draw playArea border
-        context.fillStyle = "#000000";
-        context.fillRect(0, 0, playArea.width, playArea.height);
+  		 /*
 
-		context.fillStyle = player.color;
+           context.fillStyle = "#000000";
+           context.fillRect(0, 0, playArea.width, playArea.height);
+          */
+
+   		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
+
+		//context.fillStyle = player.color;
 		//context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
-		context.fillRect(player.x,(FunJump.HEIGHT - (player.distance - player.yRel)),Player.WIDTH,Player.HEIGHT);
+		//context.fillRect(player.x,(FunJump.HEIGHT - (player.distance - player.yRel)),Player.WIDTH,Player.HEIGHT);
 		//context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
+
+		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)));
 
 		drawPlatforms(context);
 		if(player.screenMove == true){
@@ -164,7 +188,7 @@ function Client(){
 		}
 
 		if(opponent != null){
-			renderOpponent(context);
+			renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp);
 			opponent.projectiles.forEach(function(projectile,ind){
 				//Draw the bullet if it is within the player's screen
 				if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -184,6 +208,30 @@ function Client(){
 	var renderOpponent = function(context){
 		context.fillStyle = opponent.color;
 		context.fillRect(opponent.x, opponent.yForOpp, Player.WIDTH, Player.HEIGHT);
+	}
+
+	var renderPlayer = function(context, playerid, playerx, playery){
+
+		switch(playerid){
+
+			case 1:
+				context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.WIDTH);
+				break;
+			case 2:
+				context.drawImage(imageRepository.normalguy, playerx, playery, Player.WIDTH, Player.WIDTH);
+				break;
+			case 3:
+				context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.WIDTH);
+				break;
+			case 4:
+				context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.WIDTH);
+				break;
+			default:
+				console.log("Invalid player id: "+ playerid);
+
+		}
+
+
 	}
 
 	// Draw the bullets
@@ -380,8 +428,16 @@ function Client(){
 
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
+/*
 			context.fillStyle = platform.color;
-			context.fillRect(platform.x, platform.y, Platform.WIDTH, Platform.HEIGHT);
+			context.fillRect(platform.x, platform.y, Platform.WIDTH, Platform.HEIGHT);*/
+
+			if(platform.type == 0){
+				context.drawImage(imageRepository.normalplatform,platform.x,platform.y)
+			}
+			else if(platform.type == 1){
+				context.drawImage(imageRepository.trampoline,platform.x,platform.y)
+			}
 		});
 	}
 

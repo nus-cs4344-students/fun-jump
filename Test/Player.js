@@ -26,6 +26,8 @@ function Player(id) {
 		that.color = "#555";
 	}
 
+	that.id = id;
+
 	that.vx = 0;
 
 	that.isFalling = true;
