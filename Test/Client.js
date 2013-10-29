@@ -51,7 +51,8 @@ function Client(){
 					updateOpponent(message);
 					break;
 				case "updateOpponentDirection":
-					opponent.move(message.playerDirection);
+					opponent.directionUpdates++;
+					renderOpponentMovement(message.playerDirection,opponent.directionUpdates);
 					break;
 				case "fire":
 					//sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
@@ -85,6 +86,16 @@ function Client(){
         }
     }
 
+	//This function is needed to reduce the number of updates by the client for movement!
+	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
+	var renderOpponentMovement = function(direction,noOfUpdates){
+		if(noOfUpdates == opponent.directionUpdates){
+			opponent.move(direction);
+			setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
+		}
+	}
+	
+	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
@@ -94,14 +105,14 @@ function Client(){
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
 			if((e.which == 37 || e.which == 39) && playerStopped == true){	
 				playerStopped = false;
-				movePlayer(e);
+				movePlayer(e,true);
 			}
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
 			if (e.which == 37 || e.which == 39){
 				playerStopped = true;
-				stopPlayer();
+				stopPlayer(true);
 			}
 		}, false);
 
@@ -359,8 +370,6 @@ function Client(){
 		if (opponent.isFalling){
 			opponent.checkFall();
 		}
-
-		opponent.move(opponent.receivedDirection);
 		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
 	}
 
@@ -392,9 +401,7 @@ function Client(){
 	}
 	
 	var updatePlayerDirection = function(){
-		//console.log(player.direction);
-		sendToServer({type:"updatePlayerDirection",
-			playerDirection: player.direction});
+		sendToServer({type:"updatePlayerDirection",playerDirection: player.direction});
 	}
 	
 	var movePlayer = function(e,updateDirection){
@@ -403,21 +410,23 @@ function Client(){
 				player.move('left');
 			else if (e.which == 39)
 				player.move('right');
-			//if(updateDirection == true)	//Update only once to server!
+			if(updateDirection == true)	//Update only once to server!
 				updatePlayerDirection();
-				
-			//updateDirection = false;*/
+			updateDirection = false;
+			
 			setTimeout(function(){movePlayer(e);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
 		}
 	}
 	
-	var stopPlayer = function(){
+	var stopPlayer = function(updateDirection){
 		if(playerStopped == true){ //Need to constantly check if person has keydown or not.
 			if(player.vx == 0)	//once player has stopped, we don't have to do anything.
 				return ;
 			else{
 				player.move('stop');
-				updatePlayerDirection();
+				if(updateDirection == true)
+					updatePlayerDirection();
+				updateDirection = false;
 				setTimeout(stopPlayer, 1000/FunJump.FRAME_RATE);
 			}
 		}

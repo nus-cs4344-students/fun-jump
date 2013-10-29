@@ -11,7 +11,8 @@ function Player(id) {
 	that.yForOpp = 0;
 	that.direction = "stop";
 	that.receivedDirection = "nil";
-
+	that.directionUpdates = 0;
+	
 	that.projectiles = [];
 	that.projectileTimer = 0;
 	that.isHit = false;
