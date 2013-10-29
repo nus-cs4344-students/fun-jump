@@ -17,7 +17,7 @@ function Server(PORT) {
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
-
+	
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -89,7 +89,15 @@ function Server(PORT) {
 								unicast(sockets[1],message);
 							}
 							break;
-
+						case "updatePlayerDirection":
+							message.type = "updateOpponentDirection";
+							if(conn == sockets[1]){
+								unicast(sockets[0],message);
+							}
+							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
+								unicast(sockets[1],message);
+							}
+							break;
 						case "hit":
                         	if(conn == sockets[1]){
 								unicast(sockets[0],message);

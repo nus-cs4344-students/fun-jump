@@ -11,9 +11,6 @@ function Client(){
 	var keyState = {};
 	var pid = 0;
 	var connected = false;
-	var xMaxDist = 15;
-	var xCurr = 0;
-
 	var mouse;
 
 	var imageRepository;
@@ -53,6 +50,9 @@ function Client(){
 				case "updateOpponent":
 					updateOpponent(message);
 					break;
+				case "updateOpponentDirection":
+					opponent.move(message.playerDirection);
+					break;
 				case "fire":
 					//sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
 					var aProjectile = new Projectile(message.projectile.x, message.projectile.y, message.projectile.trajectory,
@@ -85,18 +85,24 @@ function Client(){
         }
     }
 
-
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
 		playArea.height = FunJump.HEIGHT;
 
 		window.addEventListener("keydown", function(e) {
-			keyState[e.keyCode || e.which] = true;
+			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
+			if((e.which == 37 || e.which == 39) && playerStopped == true){	
+				playerStopped = false;
+				movePlayer(e);
+			}
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
-			keyState[e.keyCode || e.which] = false;
+			if (e.which == 37 || e.which == 39){
+				playerStopped = true;
+				stopPlayer();
+			}
 		}, false);
 
 		mouse = {
@@ -144,8 +150,8 @@ function Client(){
     		console.log("Game loop starts");
     		setTimeout(function() {
 			GameLoop();
-			setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-						}, 1000);
+			setInterval(function() {
+							render();}, 1000/FunJump.FRAME_RATE);}, 1000);
     	}
     }
 
@@ -249,11 +255,11 @@ function Client(){
 		opponent.isJumping = message.playerIsJumping;
 		//opponent.y = message.playerY;
 		opponent.x = message.playerX;
-		opponent.vx = message.playerVX;
+		//opponent.vx = message.playerVX;
 		opponent.jumpSpeed = message.playerJumpSpeed;
 		opponent.fallSpeed = message.playerFallSpeed;
 		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
-		opponent.receivedDirection = message.playerDirection;
+		//opponent.receivedDirection = message.playerDirection;
 	}
 
 	var GameLoop = function(){
@@ -280,7 +286,7 @@ function Client(){
 
 
 		if(player.isHit == false){
-			checkMovement();
+			//checkMovement();
 			checkPlayerFall();
 			checkCollision();
 		}
@@ -378,43 +384,45 @@ function Client(){
 		sendToServer({type:"updatePlayerPosition",
 			playerX: player.x,
 			playerY: player.y,
-			playerVX: player.vx,
 			playerIsFalling: player.isFalling,
 			playerIsJumping: player.isJumping,
 			playerDistance: player.distance,
 			playerJumpSpeed: player.jumpSpeed,
-			playerFallSpeed: player.fallSpeed,
+			playerFallSpeed: player.fallSpeed});
+	}
+	
+	var updatePlayerDirection = function(){
+		//console.log(player.direction);
+		sendToServer({type:"updatePlayerDirection",
 			playerDirection: player.direction});
 	}
-
-	var stopped = 0;
-	var checkMovement = function(e){
-		if	((keyState[37] || keyState[65]) && (keyState[39] || keyState[68]))	//Press both left and right!
-			player.move('stop');
-		else if (keyState[37] || keyState[65]){
-			player.move('left');
-			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
-				xCurr = player.x;
-				updatePlayerVariables();
-			}
-			stopped = 0;
-		}
-		else if (keyState[39] || keyState[68]){
-			player.move('right');
-			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
-				xCurr = player.x;
-				updatePlayerVariables();
-			}
-			stopped = 0;
-		}
-		else{	//Player Stopped
-			player.move('stop');
-			if(stopped == 1)
-				updatePlayerVariables();
-			stopped ++;
+	
+	var movePlayer = function(e,updateDirection){
+		if(playerStopped == false){
+			if (e.which == 37)
+				player.move('left');
+			else if (e.which == 39)
+				player.move('right');
+			//if(updateDirection == true)	//Update only once to server!
+				updatePlayerDirection();
+				
+			//updateDirection = false;*/
+			setTimeout(function(){movePlayer(e);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
 		}
 	}
-
+	
+	var stopPlayer = function(){
+		if(playerStopped == true){ //Need to constantly check if person has keydown or not.
+			if(player.vx == 0)	//once player has stopped, we don't have to do anything.
+				return ;
+			else{
+				player.move('stop');
+				updatePlayerDirection();
+				setTimeout(stopPlayer, 1000/FunJump.FRAME_RATE);
+			}
+		}
+	}
+	
 	var totalNoOfPlatforms = 20;
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
