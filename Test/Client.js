@@ -8,13 +8,12 @@ function Client(){
 	var opponent = new Player(2);
 	var counter = 0;
 	var playerStopped = true;
-	var keyState = {};
 	var pid = 0;
 	var connected = false;
 	var mouse;
-
 	var imageRepository;
-
+	var debugTxt;
+	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -46,6 +45,7 @@ function Client(){
 				case "newplayer":
 					pid = message.pid;
 					opponent = new Player(2);
+					opponent.type = "opponent";
 					break;
 				case "updateOpponent":
 					updateOpponent(message);
@@ -107,6 +107,10 @@ function Client(){
 				playerStopped = false;
 				movePlayer(e,true);
 			}
+			
+			if(e.which == 38)
+				debugFn();
+			
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
@@ -141,11 +145,12 @@ function Client(){
     this.start = function() {
         // Initialize game objects
         player = new Player(1);
+		player.type = "player";
 		initNetwork();
         initGUI();
 
         player.projectileTimer = Date.now();
-
+		
 		//Start game loop inside function loading images to ensure that all images are loaded beforehand
         imageRepository = new ImageRepository();
         checkImgLoaded();
@@ -172,31 +177,11 @@ function Client(){
         var context = playArea.getContext("2d");
         // Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
-
-        // Draw playArea border
-  		 /*
-
-           context.fillStyle = "#000000";
-           context.fillRect(0, 0, playArea.width, playArea.height);
-          */
-
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-
-		//context.fillStyle = player.color;
-		//context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
-		//context.fillRect(player.x,(FunJump.HEIGHT - (player.distance - player.yRel)),Player.WIDTH,Player.HEIGHT);
-		//context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
-
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)));
 
 		drawPlatforms(context);
 		if(player.screenMove == true){
-			platforms.forEach(function(platform,ind){
-				platform.y += player.jumpSpeed;	//Move the platform accordingly.
-			});
-			player.projectiles.forEach(function(projectile,ind){
-				projectile.y += player.jumpSpeed;
-			});
 			if(opponent != null){
 				opponent.projectiles.forEach(function(projectile,ind){
 					projectile.y += player.jumpSpeed;
@@ -375,7 +360,7 @@ function Client(){
 
 	var checkPlayerFall = function(){
 		if (player.isJumping){
-			player.checkJump();
+			player.checkJump(platforms);
 			jumping ++;
 			falling = 0;
 		}
@@ -441,6 +426,7 @@ function Client(){
 		for(var i = 0; i < p.length; i++){
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
 		}
+		player.platforms = platforms;
 	}
 
 	var drawPlatforms = function(context){
@@ -466,8 +452,8 @@ function Client(){
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
-				//console.log("Player Distance: " + player.distance + "Platform Y : " + (500- platform.origY));
-				player.distance = (500-platform.origY) + Player.HEIGHT;
+				console.log("Player Distance: " + (player.distance-Player.HEIGHT) + "Platform Y : " + (500- platform.origY));
+				//player.distance = (500-platform.origY) + Player.HEIGHT;
 			}
 /*			if(opponent.isFalling &&
 			(opponent.x < platform.x + Platform.WIDTH) &&
@@ -477,6 +463,9 @@ function Client(){
 				platform.onCollide(opponent);
 			}*/ //NEED TO FIX YREL forplatforms
 		});
+	}
+	var debugFn = function(){
+		console.log("DIST: " + player.distance + " Y:" + (FunJump.HEIGHT - platforms[0].y));
 	}
 }
 
