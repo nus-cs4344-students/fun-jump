@@ -12,11 +12,12 @@ function Player(id) {
 	that.direction = "stop";
 	that.directionUpdates = 0;
 	that.type;
-	
+
 	that.platforms = [];
 	that.projectiles = [];
 	that.projectileTimer = 0;
 	that.isHit = false;
+	that.shoot = false; //true when player fires a projectile, for graphical display purpose
 
 	that.image = new Image();
 	if(id==1){
@@ -107,10 +108,10 @@ function Player(id) {
 				platforms.forEach(function(platform,ind){
 					platform.y += that.jumpSpeed;	//Move the platform accordingly.
 				});
-				
+
 				that.projectiles.forEach(function(projectile,ind){
 					projectile.y += that.jumpSpeed;
-				});				
+				});
 			}
 		}
 
@@ -152,6 +153,6 @@ Player.WIDTH = 30;
 Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
-Player.SHOOTDELAY = 200;
+Player.SHOOTDELAY = 1000;
 Player.FREEZE = 100;
 global.Player = Player;

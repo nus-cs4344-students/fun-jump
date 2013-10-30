@@ -17,6 +17,7 @@
 	  this.evila = new Image();
 	  this.angel = new Image();
 	  this.angela = new Image();
+	  this.splash = new Image();
 
 	  this.allImgLoaded = false;
 
@@ -24,7 +25,7 @@
 
 
 	  // Ensure all images have loaded before starting the game
-	  var numImages = 11;
+	  var numImages = 12;
 	  var numLoaded = 0;
 	  function imageLoaded() {
 	    numLoaded++;
@@ -66,6 +67,9 @@
 	  this.angela.onload = function() {
 	    imageLoaded();
 	  }
+	  this.splash.onload = function() {
+	    imageLoaded();
+	  }
 
 	  var imagePath = "./libs/img/";
 	  // Set images src
@@ -80,6 +84,7 @@
 	  this.evila.src = imagePath + "evil angry" +".png";
 	  this.angel.src = imagePath + "angel" +".png";
 	  this.angela.src = imagePath + "angel angry" +".png";
+	  this.splash.src = imagePath + "splash" +".png";
 	}
 
 // For node.js require

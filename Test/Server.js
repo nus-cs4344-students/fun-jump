@@ -17,7 +17,7 @@ function Server(PORT) {
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
-	
+
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -108,6 +108,7 @@ function Server(PORT) {
 							break;
 
 						case "fire":
+							console.log("fire");
                         	if(conn == sockets[1]){
 								unicast(sockets[0],message);
 							}

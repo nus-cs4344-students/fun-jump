@@ -15,7 +15,7 @@ function Client(){
 	var debugTxt;
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
-	
+
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -63,6 +63,7 @@ function Client(){
 										message.projectile.distance);
 					aProjectile.updatePos((Date.now()-message.fireTime)/1000);
 					aProjectile.y = player.distance-aProjectile.distance+player.y;
+					opponent.shoot = true;
 					opponent.projectiles.splice(message.projkey,0,aProjectile);
 					break;
 
@@ -97,7 +98,7 @@ function Client(){
 				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
 		}
 	}
-	
+
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
@@ -105,14 +106,14 @@ function Client(){
 
 		window.addEventListener("keydown", function(e) {
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
-			if((e.which == 37 || e.which == 39) && playerStopped == true){	
+			if((e.which == 37 || e.which == 39) && playerStopped == true){
 				playerStopped = false;
 				movePlayer(e,true);
 			}
-			
+
 			if(e.which == 38)
 				debugFn();
-			
+
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
@@ -152,7 +153,7 @@ function Client(){
         initGUI();
 
         player.projectileTimer = Date.now();
-		
+
 		//Start game loop inside function loading images to ensure that all images are loaded beforehand
         imageRepository = new ImageRepository();
         checkImgLoaded();
@@ -166,10 +167,8 @@ function Client(){
     	}
     	else{
     		console.log("Game loop starts");
-    		setTimeout(function() {
-			GameLoop();
-			setInterval(function() {
-							render();}, 1000/FunJump.FRAME_RATE);}, 1000);
+			setInterval(function() {GameLoop();
+							render();}, 1000/FunJump.FRAME_RATE);
     	}
     }
 
@@ -180,7 +179,7 @@ function Client(){
         // Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)));
+		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
 
 		drawPlatforms(context);
 		if(player.screenMove == true){
@@ -192,7 +191,7 @@ function Client(){
 		}
 
 		if(opponent != null){
-			renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp);
+			renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
 			opponent.projectiles.forEach(function(projectile,ind){
 				//Draw the bullet if it is within the player's screen
 				if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -205,6 +204,7 @@ function Client(){
 			//Draw the bullet if it is within the player's screen
 			if(projectile.distance+Projectile.SIZE>player.yRel){
 				renderProjectile(context,projectile);
+				console.log(projectile);
 			}
    		});
     }
@@ -214,56 +214,84 @@ function Client(){
 		context.fillRect(opponent.x, opponent.yForOpp, Player.WIDTH, Player.HEIGHT);
 	}
 
-	var renderPlayer = function(context, playerid, playerx, playery){
+	var renderPlayer = function(context, playerid, playerx, playery, playerIsHit, playerShoot, player){
 
-		switch(playerid){
+		switch(playerShoot){
+			case true:
+				switch(playerid){
 
-			case 1:
-				context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.WIDTH);
+				case 1:
+					context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 2:
+					context.drawImage(imageRepository.normalguya, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 3:
+					context.drawImage(imageRepository.angela, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 4:
+					context.drawImage(imageRepository.evila, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				default:
+					console.log("Invalid player id: "+ playerid);}
+				player.shoot = false;
 				break;
-			case 2:
-				context.drawImage(imageRepository.normalguy, playerx, playery, Player.WIDTH, Player.WIDTH);
-				break;
-			case 3:
-				context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.WIDTH);
-				break;
-			case 4:
-				context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.WIDTH);
-				break;
-			default:
-				console.log("Invalid player id: "+ playerid);
+			case false:
+				switch(playerid){
+
+				case 1:
+					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 2:
+					context.drawImage(imageRepository.normalguy, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 3:
+					context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 4:
+					context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				default:
+					console.log("Invalid player id: "+ playerid);}
 
 		}
 
-
+		if(playerIsHit == true){
+			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
+		}
 	}
 
 	// Draw the bullets
 	var renderProjectile = function(context, projectile){
-		context.fillStyle = projectile.color;
-		context.beginPath();
-		context.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI*2, true);
-		context.closePath();
-		context.fill();
+		if(projectile.landedTimer > 0){
+			context.drawImage(imageRepository.splash, projectile.x - Projectile.SPLASH_SIZE/2, projectile.y - Projectile.SPLASH_SIZE/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
+		}
+		else{
+			context.fillStyle = projectile.color;
+			context.beginPath();
+			context.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI*2, true);
+			context.closePath();
+			context.fill();
+		}
 	}
 
-	
+
 	//NEED TO ADD IN JITTER OPTION HERE!
 	var updateOpponent = function(message){
 		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
-		
+
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
 		if( ((opponent.x + convMaxXThres) < message.playerX )||
 			((opponent.x - convMaxXThres) > message.playerX ) ||
-			((opponent.distance - convMaxYThres) > message.playerDistance)|| 
+			((opponent.distance - convMaxYThres) > message.playerDistance)||
 			((opponent.distance + convMaxYThres) < message.playerDistance)	){
-			
-			/*console.log("RESET POS " + 
-				((opponent.x + convXThres) < message.playerX ) + " " + 
-				((opponent.x - convXThres) > message.playerX ) + " " + 
-				((opponent.distance - convYThres) > message.playerDistance) + " " +  
+
+			/*console.log("RESET POS " +
+				((opponent.x + convXThres) < message.playerX ) + " " +
+				((opponent.x - convXThres) > message.playerX ) + " " +
+				((opponent.distance - convYThres) > message.playerDistance) + " " +
 				((opponent.distance + convYThres) < message.playerDistance))
-			
+
 			console.log("PREV DISTANCE " + opponent.distance + " NEW DIST " +  message.playerDistance);*/
 				opponent.distance = message.playerDistance;
 				opponent.isFalling = message.playerIsFalling;
@@ -273,17 +301,17 @@ function Client(){
 				opponent.fallSpeed = message.playerFallSpeed;
 				opponent.yForOpp = tempYForOpp;
 		}
-		
+
 		else{	//It is within the range, so do simple convergence.
 			//CONVERGENCE OVER HERE
 			//Move to x position properly
-			
+
 			//Move to y position properly
-			
+
 			//Set falling / jumping
 			//opponent.isFalling = message.playerIsFalling;
 			//opponent.isJumping = message.playerIsJumping;
-			
+
 			//Set Jump Speed
 			/*opponent.jumpSpeed = message.playerJumpSpeed;
 			opponent.fallSpeed = message.playerFallSpeed;*/
@@ -294,8 +322,9 @@ function Client(){
 
 		//console.log(player.projectiles);
 		for (var key in player.projectiles) {
-	        player.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
-	        if (player.projectiles[key].x-player.projectiles[key].size > FunJump.WIDTH || player.projectiles[key].x+player.projectiles[key].size <0)
+			player.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
+
+	        if (player.projectiles[key].landedTimer >= 5)
 	        {
 	            player.projectiles.splice(key, 1);
 	            sendToServer({type:"projGone", projkey: key});
@@ -305,7 +334,7 @@ function Client(){
 	    if(opponent != null){
 		    for (var key in opponent.projectiles) {
 		        opponent.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
-		        if (opponent.projectiles[key].canRemove==true && (opponent.projectiles[key].x-opponent.projectiles[key].size > FunJump.WIDTH || opponent.projectiles[key].x+opponent.projectiles[key].size <0))
+		        if (opponent.projectiles[key].canRemove==true && opponent.projectiles[key].landedTimer >= 10)
 		        {
 		            opponent.projectiles.splice(key, 1);
 		        }
@@ -325,7 +354,7 @@ function Client(){
 
 		collisionDetect();
 
-		setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
+		//setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
 
 	};
 
@@ -335,7 +364,7 @@ function Client(){
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
-	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, mouse.x, mouse.y),
+	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, mouse.x, mouse.y, player.distance-Player.HEIGHT/2),
 	                Projectile.SIZE,
 	                Projectile.COLOR,
 	                Projectile.SPEED,
@@ -346,6 +375,7 @@ function Client(){
 	        player.projectiles[projKey] = newproj;
 
 	        player.projectileTimer = Date.now();
+	        player.shoot = true;
 
 	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
     	}
@@ -355,15 +385,20 @@ function Client(){
 	var collisionDetect = function(){
 		if (player.projectiles.length > 0) {
 		    for (var key in player.projectiles) {
-		        if (player.projectiles[key] != undefined) {
+		        if (player.projectiles[key] != undefined && player.projectiles[key].landedTimer<=1) {
 		 				if(opponent != null && opponent.isHit == false){
 		 					// if(((Math.abs(player.projectiles[key].x-opponent.x)<player.projectiles[key].size)
 		 					// || (Math.abs(player.projectiles[key].x-opponent.x-Player.WIDTH)<player.projectiles[key].size))
 		 					// && ((Math.abs(player.projectiles[key].distance-opponent.distance)<player.projectiles[key].size)
 		 					// || (Math.abs(player.projectiles[key].distance-opponent.distance+Player.HEIGHT)<player.projectiles[key].size)))
-		 					var dist = Math.sqrt(Math.pow((player.projectiles[key].x - opponent.x - Player.WIDTH/2), 2) + Math.pow((player.projectiles[key].y - opponent.y - Player.HEIGHT/2), 2));
-		 					console.log(dist);
-		 					if(dist < 3*Player.WIDTH/2 + Projectile.SIZE)
+		 					/*
+							 var dist = Math.sqrt(Math.pow((player.projectiles[key].x - opponent.x - Player.WIDTH/2), 2) + Math.pow((player.projectiles[key].y - opponent.y - Player.HEIGHT/2), 2));
+							console.log(dist);
+							if(dist < 3*Player.WIDTH/2 + Projectile.SIZE)*/
+							if(player.projectiles[key].x - Projectile.SIZE < opponent.x + Player.WIDTH &&
+         						player.projectiles[key].x + Projectile.SIZE > opponent.x &&
+         						player.projectiles[key].y - Projectile.SIZE < opponent.y + Player.HEIGHT &&
+         						player.projectiles[key].y + Projectile.SIZE > opponent.y)
 		 					{
 		 						console.log("Hit");
 		 						opponent.isHit = true;
@@ -418,11 +453,11 @@ function Client(){
 			playerJumpSpeed: player.jumpSpeed,
 			playerFallSpeed: player.fallSpeed});
 	}
-	
+
 	var updatePlayerDirection = function(){
 		sendToServer({type:"updatePlayerDirection",playerDirection: player.direction});
 	}
-	
+
 	var movePlayer = function(e,updateDirection){
 		if(playerStopped == false){
 			if (e.which == 37)
@@ -432,11 +467,11 @@ function Client(){
 			if(updateDirection == true)	//Update only once to server!
 				updatePlayerDirection();
 			updateDirection = false;
-			
+
 			setTimeout(function(){movePlayer(e);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
 		}
 	}
-	
+
 	var stopPlayer = function(updateDirection){
 		if(playerStopped == true){ //Need to constantly check if person has keydown or not.
 			if(player.vx == 0)	//once player has stopped, we don't have to do anything.
@@ -450,7 +485,7 @@ function Client(){
 			}
 		}
 	}
-	
+
 	var totalNoOfPlatforms = 20;
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
@@ -481,7 +516,7 @@ function Client(){
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
 			}
-			
+
 			//Client will render opponent collision
 			if(opponent.isFalling &&
 			(opponent.x < platform.x + Platform.WIDTH) &&
