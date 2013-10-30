@@ -8,16 +8,14 @@ function Client(){
 	var opponent = new Player(2);
 	var counter = 0;
 	var playerStopped = true;
-	var keyState = {};
 	var pid = 0;
 	var connected = false;
-	var xMaxDist = 15;
-	var xCurr = 0;
-
 	var mouse;
-
 	var imageRepository;
-
+	var debugTxt;
+	var convMaxXThres = 50;
+	var	convMaxYThres = 50;
+	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -49,9 +47,14 @@ function Client(){
 				case "newplayer":
 					pid = message.pid;
 					opponent = new Player(2);
+					opponent.type = "opponent";
 					break;
 				case "updateOpponent":
 					updateOpponent(message);
+					break;
+				case "updateOpponentDirection":
+					opponent.directionUpdates++;
+					renderOpponentMovement(message.playerDirection,opponent.directionUpdates);
 					break;
 				case "fire":
 					//sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
@@ -85,18 +88,38 @@ function Client(){
         }
     }
 
-
+	//This function is needed to reduce the number of updates by the client for movement!
+	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
+	var renderOpponentMovement = function(direction,noOfUpdates){
+		if(noOfUpdates == opponent.directionUpdates){
+			opponent.move(direction);
+			if(!(direction == "stop" && opponent.vx == 0))
+				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
+		}
+	}
+	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
 		playArea.height = FunJump.HEIGHT;
 
 		window.addEventListener("keydown", function(e) {
-			keyState[e.keyCode || e.which] = true;
+			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
+			if((e.which == 37 || e.which == 39) && playerStopped == true){	
+				playerStopped = false;
+				movePlayer(e,true);
+			}
+			
+			if(e.which == 38)
+				debugFn();
+			
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
-			keyState[e.keyCode || e.which] = false;
+			if (e.which == 37 || e.which == 39){
+				playerStopped = true;
+				stopPlayer(true);
+			}
 		}, false);
 
 		mouse = {
@@ -124,11 +147,12 @@ function Client(){
     this.start = function() {
         // Initialize game objects
         player = new Player(1);
+		player.type = "player";
 		initNetwork();
         initGUI();
 
         player.projectileTimer = Date.now();
-
+		
 		//Start game loop inside function loading images to ensure that all images are loaded beforehand
         imageRepository = new ImageRepository();
         checkImgLoaded();
@@ -144,8 +168,8 @@ function Client(){
     		console.log("Game loop starts");
     		setTimeout(function() {
 			GameLoop();
-			setInterval(function() {render();}, 1000/FunJump.FRAME_RATE);
-						}, 1000);
+			setInterval(function() {
+							render();}, 1000/FunJump.FRAME_RATE);}, 1000);
     	}
     }
 
@@ -155,31 +179,11 @@ function Client(){
         var context = playArea.getContext("2d");
         // Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
-
-        // Draw playArea border
-  		 /*
-
-           context.fillStyle = "#000000";
-           context.fillRect(0, 0, playArea.width, playArea.height);
-          */
-
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-
-		//context.fillStyle = player.color;
-		//context.fillRect(player.x,player.y,Player.WIDTH,Player.HEIGHT);
-		//context.fillRect(player.x,(FunJump.HEIGHT - (player.distance - player.yRel)),Player.WIDTH,Player.HEIGHT);
-		//context.drawImage(player.image,player.x,player.y,Player.WIDTH,Player.HEIGHT);
-
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)));
 
 		drawPlatforms(context);
 		if(player.screenMove == true){
-			platforms.forEach(function(platform,ind){
-				platform.y += player.jumpSpeed;	//Move the platform accordingly.
-			});
-			player.projectiles.forEach(function(projectile,ind){
-				projectile.y += player.jumpSpeed;
-			});
 			if(opponent != null){
 				opponent.projectiles.forEach(function(projectile,ind){
 					projectile.y += player.jumpSpeed;
@@ -243,17 +247,47 @@ function Client(){
 		context.fill();
 	}
 
+	
+	//NEED TO ADD IN JITTER OPTION HERE!
 	var updateOpponent = function(message){
-		opponent.distance = message.playerDistance;
-		opponent.isFalling = message.playerIsFalling;
-		opponent.isJumping = message.playerIsJumping;
-		//opponent.y = message.playerY;
-		opponent.x = message.playerX;
-		opponent.vx = message.playerVX;
-		opponent.jumpSpeed = message.playerJumpSpeed;
-		opponent.fallSpeed = message.playerFallSpeed;
-		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
-		opponent.receivedDirection = message.playerDirection;
+		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
+		
+		//TELEPORT NEEDS TO HAPPEN! TOO FAR
+		if( ((opponent.x + convMaxXThres) < message.playerX )||
+			((opponent.x - convMaxXThres) > message.playerX ) ||
+			((opponent.distance - convMaxYThres) > message.playerDistance)|| 
+			((opponent.distance + convMaxYThres) < message.playerDistance)	){
+			
+			/*console.log("RESET POS " + 
+				((opponent.x + convXThres) < message.playerX ) + " " + 
+				((opponent.x - convXThres) > message.playerX ) + " " + 
+				((opponent.distance - convYThres) > message.playerDistance) + " " +  
+				((opponent.distance + convYThres) < message.playerDistance))
+			
+			console.log("PREV DISTANCE " + opponent.distance + " NEW DIST " +  message.playerDistance);*/
+				opponent.distance = message.playerDistance;
+				opponent.isFalling = message.playerIsFalling;
+				opponent.isJumping = message.playerIsJumping;
+				opponent.x = message.playerX;
+				opponent.jumpSpeed = message.playerJumpSpeed;
+				opponent.fallSpeed = message.playerFallSpeed;
+				opponent.yForOpp = tempYForOpp;
+		}
+		
+		else{	//It is within the range, so do simple convergence.
+			//CONVERGENCE OVER HERE
+			//Move to x position properly
+			
+			//Move to y position properly
+			
+			//Set falling / jumping
+			//opponent.isFalling = message.playerIsFalling;
+			//opponent.isJumping = message.playerIsJumping;
+			
+			//Set Jump Speed
+			/*opponent.jumpSpeed = message.playerJumpSpeed;
+			opponent.fallSpeed = message.playerFallSpeed;*/
+		}
 	}
 
 	var GameLoop = function(){
@@ -280,7 +314,7 @@ function Client(){
 
 
 		if(player.isHit == false){
-			checkMovement();
+			//checkMovement();
 			checkPlayerFall();
 			checkCollision();
 		}
@@ -353,14 +387,12 @@ function Client(){
 		if (opponent.isFalling){
 			opponent.checkFall();
 		}
-
-		opponent.move(opponent.receivedDirection);
 		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
 	}
 
 	var checkPlayerFall = function(){
 		if (player.isJumping){
-			player.checkJump();
+			player.checkJump(platforms);
 			jumping ++;
 			falling = 0;
 		}
@@ -371,6 +403,8 @@ function Client(){
 		}
 		if(connected && (falling == 1 || jumping == 1)){
 			updatePlayerVariables();
+			//Reupdate player after 0.25second (something like local lag)
+			setTimeout(function(){updatePlayerVariables();}, 250);
 		}
 	}
 
@@ -378,88 +412,88 @@ function Client(){
 		sendToServer({type:"updatePlayerPosition",
 			playerX: player.x,
 			playerY: player.y,
-			playerVX: player.vx,
 			playerIsFalling: player.isFalling,
 			playerIsJumping: player.isJumping,
 			playerDistance: player.distance,
 			playerJumpSpeed: player.jumpSpeed,
-			playerFallSpeed: player.fallSpeed,
-			playerDirection: player.direction});
+			playerFallSpeed: player.fallSpeed});
 	}
-
-	var stopped = 0;
-	var checkMovement = function(e){
-		if	((keyState[37] || keyState[65]) && (keyState[39] || keyState[68]))	//Press both left and right!
-			player.move('stop');
-		else if (keyState[37] || keyState[65]){
-			player.move('left');
-			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
-				xCurr = player.x;
-				updatePlayerVariables();
-			}
-			stopped = 0;
-		}
-		else if (keyState[39] || keyState[68]){
-			player.move('right');
-			if(player.x >= (xCurr + xMaxDist) || player.x <= (xCurr- xMaxDist)){
-				xCurr = player.x;
-				updatePlayerVariables();
-			}
-			stopped = 0;
-		}
-		else{	//Player Stopped
-			player.move('stop');
-			if(stopped == 1)
-				updatePlayerVariables();
-			stopped ++;
+	
+	var updatePlayerDirection = function(){
+		sendToServer({type:"updatePlayerDirection",playerDirection: player.direction});
+	}
+	
+	var movePlayer = function(e,updateDirection){
+		if(playerStopped == false){
+			if (e.which == 37)
+				player.move('left');
+			else if (e.which == 39)
+				player.move('right');
+			if(updateDirection == true)	//Update only once to server!
+				updatePlayerDirection();
+			updateDirection = false;
+			
+			setTimeout(function(){movePlayer(e);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
 		}
 	}
-
+	
+	var stopPlayer = function(updateDirection){
+		if(playerStopped == true){ //Need to constantly check if person has keydown or not.
+			if(player.vx == 0)	//once player has stopped, we don't have to do anything.
+				return ;
+			else{
+				player.move('stop');
+				if(updateDirection == true)
+					updatePlayerDirection();
+				updateDirection = false;
+				setTimeout(stopPlayer, 1000/FunJump.FRAME_RATE);
+			}
+		}
+	}
+	
 	var totalNoOfPlatforms = 20;
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
 
 	var convertToPlatforms = function(p){
-		for(var i = 0; i < p.length; i++){
+		for(var i = 0; i < p.length; i++)
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
-		}
+		player.platforms = platforms;
 	}
 
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
-/*
-			context.fillStyle = platform.color;
-			context.fillRect(platform.x, platform.y, Platform.WIDTH, Platform.HEIGHT);*/
-
-			if(platform.type == 0){
+			if(platform.type == 0)
 				context.drawImage(imageRepository.normalplatform,platform.x,platform.y)
-			}
-			else if(platform.type == 1){
+			else if(platform.type == 1)
 				context.drawImage(imageRepository.trampoline,platform.x,platform.y)
-			}
 		});
 	}
 
 	var checkCollision = function(){
 		platforms.forEach(function(platform, no){
+			//Client will render player position when platform collision happens based on requirements
 			if(player.isFalling &&
 			(player.x < platform.x + Platform.WIDTH) &&
 			(player.x + Player.WIDTH > platform.x) &&
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
-				//console.log("Player Distance: " + player.distance + "Platform Y : " + (500- platform.origY));
-				player.distance = (500-platform.origY) + Player.HEIGHT;
 			}
-/*			if(opponent.isFalling &&
+			
+			//Client will render opponent collision
+			if(opponent.isFalling &&
 			(opponent.x < platform.x + Platform.WIDTH) &&
 			(opponent.x + Player.WIDTH > platform.x) &&
-			(opponent.y + Player.HEIGHT > platform.y) &&
-			(opponent.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+			(opponent.distance - Player.HEIGHT < platform.gameY) &&
+			(opponent.distance > platform.gameY)){
 				platform.onCollide(opponent);
-			}*/ //NEED TO FIX YREL forplatforms
+			}
 		});
+	}
+	var debugFn = function(x){
+		console.log("Dist " + opponent.distance + " Opponent x " + opponent.x);
 	}
 }
 

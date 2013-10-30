@@ -3,7 +3,8 @@ function Platform (x, y, type){
 	var that=this;
 	that.origY = y;
 	that.color = '#ABCDEF';
-
+	that.gameY = FunJump.HEIGHT-that.origY;
+	
 	if (type === 1) {
 		that.color = '#975310';
 	}
