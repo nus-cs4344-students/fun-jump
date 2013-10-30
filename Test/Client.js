@@ -13,6 +13,8 @@ function Client(){
 	var mouse;
 	var imageRepository;
 	var debugTxt;
+	var convMaxXThres = 50;
+	var	convMaxYThres = 50;
 	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -91,10 +93,10 @@ function Client(){
 	var renderOpponentMovement = function(direction,noOfUpdates){
 		if(noOfUpdates == opponent.directionUpdates){
 			opponent.move(direction);
-			setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
+			if(!(direction == "stop" && opponent.vx == 0))
+				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
 		}
 	}
-	
 	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
@@ -245,17 +247,47 @@ function Client(){
 		context.fill();
 	}
 
+	
+	//NEED TO ADD IN JITTER OPTION HERE!
 	var updateOpponent = function(message){
-		opponent.distance = message.playerDistance;
-		opponent.isFalling = message.playerIsFalling;
-		opponent.isJumping = message.playerIsJumping;
-		//opponent.y = message.playerY;
-		opponent.x = message.playerX;
-		//opponent.vx = message.playerVX;
-		opponent.jumpSpeed = message.playerJumpSpeed;
-		opponent.fallSpeed = message.playerFallSpeed;
-		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
-		//opponent.receivedDirection = message.playerDirection;
+		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
+		
+		//TELEPORT NEEDS TO HAPPEN! TOO FAR
+		if( ((opponent.x + convMaxXThres) < message.playerX )||
+			((opponent.x - convMaxXThres) > message.playerX ) ||
+			((opponent.distance - convMaxYThres) > message.playerDistance)|| 
+			((opponent.distance + convMaxYThres) < message.playerDistance)	){
+			
+			/*console.log("RESET POS " + 
+				((opponent.x + convXThres) < message.playerX ) + " " + 
+				((opponent.x - convXThres) > message.playerX ) + " " + 
+				((opponent.distance - convYThres) > message.playerDistance) + " " +  
+				((opponent.distance + convYThres) < message.playerDistance))
+			
+			console.log("PREV DISTANCE " + opponent.distance + " NEW DIST " +  message.playerDistance);*/
+				opponent.distance = message.playerDistance;
+				opponent.isFalling = message.playerIsFalling;
+				opponent.isJumping = message.playerIsJumping;
+				opponent.x = message.playerX;
+				opponent.jumpSpeed = message.playerJumpSpeed;
+				opponent.fallSpeed = message.playerFallSpeed;
+				opponent.yForOpp = tempYForOpp;
+		}
+		
+		else{	//It is within the range, so do simple convergence.
+			//CONVERGENCE OVER HERE
+			//Move to x position properly
+			
+			//Move to y position properly
+			
+			//Set falling / jumping
+			//opponent.isFalling = message.playerIsFalling;
+			//opponent.isJumping = message.playerIsJumping;
+			
+			//Set Jump Speed
+			/*opponent.jumpSpeed = message.playerJumpSpeed;
+			opponent.fallSpeed = message.playerFallSpeed;*/
+		}
 	}
 
 	var GameLoop = function(){
@@ -371,6 +403,8 @@ function Client(){
 		}
 		if(connected && (falling == 1 || jumping == 1)){
 			updatePlayerVariables();
+			//Reupdate player after 0.25second (something like local lag)
+			setTimeout(function(){updatePlayerVariables();}, 250);
 		}
 	}
 
@@ -423,49 +457,43 @@ function Client(){
 	var platforms = [];
 
 	var convertToPlatforms = function(p){
-		for(var i = 0; i < p.length; i++){
+		for(var i = 0; i < p.length; i++)
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
-		}
 		player.platforms = platforms;
 	}
 
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
-/*
-			context.fillStyle = platform.color;
-			context.fillRect(platform.x, platform.y, Platform.WIDTH, Platform.HEIGHT);*/
-
-			if(platform.type == 0){
+			if(platform.type == 0)
 				context.drawImage(imageRepository.normalplatform,platform.x,platform.y)
-			}
-			else if(platform.type == 1){
+			else if(platform.type == 1)
 				context.drawImage(imageRepository.trampoline,platform.x,platform.y)
-			}
 		});
 	}
 
 	var checkCollision = function(){
 		platforms.forEach(function(platform, no){
+			//Client will render player position when platform collision happens based on requirements
 			if(player.isFalling &&
 			(player.x < platform.x + Platform.WIDTH) &&
 			(player.x + Player.WIDTH > platform.x) &&
 			(player.y + Player.HEIGHT > platform.y) &&
 			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 				platform.onCollide(player);
-				console.log("Player Distance: " + (player.distance-Player.HEIGHT) + "Platform Y : " + (500- platform.origY));
-				//player.distance = (500-platform.origY) + Player.HEIGHT;
 			}
-/*			if(opponent.isFalling &&
+			
+			//Client will render opponent collision
+			if(opponent.isFalling &&
 			(opponent.x < platform.x + Platform.WIDTH) &&
 			(opponent.x + Player.WIDTH > platform.x) &&
-			(opponent.y + Player.HEIGHT > platform.y) &&
-			(opponent.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+			(opponent.distance - Player.HEIGHT < platform.gameY) &&
+			(opponent.distance > platform.gameY)){
 				platform.onCollide(opponent);
-			}*/ //NEED TO FIX YREL forplatforms
+			}
 		});
 	}
-	var debugFn = function(){
-		console.log("DIST: " + player.distance + " Y:" + (FunJump.HEIGHT - platforms[0].y));
+	var debugFn = function(x){
+		console.log("Dist " + opponent.distance + " Opponent x " + opponent.x);
 	}
 }
 

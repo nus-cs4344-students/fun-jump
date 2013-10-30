@@ -158,6 +158,7 @@ function Server(PORT) {
 			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
 			//random X position
 			position = position - platformDist;
+			console.log("Y: " + platforms[i].origY + " MAP Y: " + platforms[i].gameY);
 		}
 		//and Y position interval
 	};
