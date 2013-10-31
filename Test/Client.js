@@ -423,7 +423,7 @@ function Client(){
 
 	var fireBullet = function(){
 
-		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.isHit == false) {
+		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.isHit == false && player.finish == false) {
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
@@ -569,9 +569,7 @@ function Client(){
 			//Client will render player position when platform collision happens based on requirements
 			switch(platform.type){
 				case 3:
-					if(player.isFalling &&
-					(player.y + Player.HEIGHT > platform.y) &&
-					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+					if(player.y + Player.HEIGHT < platform.y){
 						player.finish = true;
 						player.y = platform.y-Player.HEIGHT;
 					}
@@ -595,9 +593,7 @@ function Client(){
 			switch(platform.type){
 				case 3:
 
-					if(opponent.isFalling &&
-					(opponent.distance - Player.HEIGHT < platform.gameY) &&
-					(opponent.distance > platform.gameY)){
+					if(opponent.distance - Player.HEIGHT > platform.gameY){
 						opponent.finish = true;
 						opponent.y = platform.y-Player.HEIGHT;
 					}
