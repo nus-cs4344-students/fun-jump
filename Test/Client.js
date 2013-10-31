@@ -276,7 +276,8 @@ function Client(){
 
 	var renderPlayer = function(context, playerid, playerx, playery, playerIsHit, playerShoot, player){
 
-		switch(playerShoot){
+		var condition = playerShoot||playerIsHit;
+		switch(condition){
 			case true:
 				switch(playerid){
 
@@ -402,16 +403,32 @@ function Client(){
 		}
 
 
-		if(player.isHit == false && player.finish == false){
+		if(player.isHit == false && player.finish == false && player.die == false){
 			//checkMovement();
 			checkPlayerFall();
 			checkCollisionForPlayer();
 		}
 
-		if(opponent.isHit == false && opponent.finish == false){
+		if(opponent.isHit == false && opponent.finish == false && opponent.die == false){
 
 			checkOpponentFall();
 			checkCollisionForOpponent(opponent);
+		}
+
+		if(player.start == false && player.die == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
+			player.die = true;
+			setTimeout(function(){
+				getNearestPlatform(player);
+				player.die = false;
+			}, 2000);
+		}
+
+		if(opponent.start == false && opponent.die == false && opponent.y >= FunJump.HEIGHT - Player.HEIGHT){
+			opponent.die = true;
+			setTimeout(function(){
+				getNearestPlatform(opponent);
+				opponent.die = false;
+			}, 2000);
 		}
 
 		collisionDetect();
@@ -420,6 +437,27 @@ function Client(){
 		//setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
 
 	};
+
+	var getNearestPlatform = function(player){
+
+		//GetNearestPlatform
+		var nearestPlatform;
+		for(var i = 0; i < platforms.length; i ++){
+			if(platforms[i].gameY >= player.distance){
+				nearestPlatform = platforms[i];
+				break;
+			}
+		}
+
+		//Set player to nearest platform
+		player.distance = nearestPlatform.gameY + 10 + Player.HEIGHT;
+		player.y = nearestPlatform.y - 10 - Player.HEIGHT;
+		player.x = nearestPlatform.x;	//Adjust the position such that its half of the platform
+		player.fallSpeed = 5;
+		player.isJumping = false;
+		player.isFalling = true;
+
+	}
 
 	var fireBullet = function(){
 

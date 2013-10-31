@@ -19,6 +19,8 @@ function Player(id) {
 	that.isHit = false;
 	that.shoot = false; //true when player fires a projectile, for graphical display purpose
 	that.finish = false;//true if player reaches finish line
+	that.start = true;
+	that.die = false;
 	that.image = new Image();
 	that.id = id;
 
@@ -95,6 +97,7 @@ function Player(id) {
 		}
 		else{
 			that.screenMove = true;
+			that.start = false;
 			if(that.type=="player"){
 				platforms.forEach(function(platform,ind){
 					platform.y += that.jumpSpeed;	//Move the platform accordingly.
