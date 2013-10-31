@@ -17,6 +17,7 @@ function Server(PORT) {
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
+	var ready = 0; //Bit operations to track if players are ready.
 
 	var broadcast = function (msg) {
 		var id;
@@ -57,6 +58,7 @@ function Server(PORT) {
 					// Sends to client
 					broadcast({type:"message", content:"There is now " + count + " players"});
 					unicast(conn, {type:"map", content:platforms});
+					broadcast({type:"newjoiner", pid:count});
 					//if(count == 1){	//2nd player has joined!
 					unicast(sockets[count], {type:"newplayer", content:"New Player Joined!", pid:count});
 						//unicast(sockets[2], {type:"newplayer", content:"New Player Joined!"});
@@ -123,6 +125,13 @@ function Server(PORT) {
 							}
 							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
 								unicast(sockets[1],message);
+							}
+							break;
+						case "ready":
+							ready = ready | (1<<message.pid);
+							broadcast(message);
+							if (count > 1 && ready == Math.pow(2, count)-1){
+								broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
 							}
 							break;
 

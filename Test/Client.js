@@ -1,5 +1,6 @@
 "use strict";
 function Client(){
+	var that = this;
 	var socket;         // socket used to connect to server
 	var playArea;
 	var counter;
@@ -8,7 +9,7 @@ function Client(){
 	var opponent = new Player(2);
 	var counter = 0;
 	var playerStopped = true;
-	var pid = 0;
+	that.pid = 0;
 	var connected = false;
 	var mouse;
 	var imageRepository;
@@ -20,6 +21,7 @@ function Client(){
         socket.send(JSON.stringify(msg));
     }
 
+    that.sendToServer = sendToServer;
     var appendMessage = function(location, msg) {
 		if(location=="clientMsg"){
 			document.getElementById(location).innerHTML = msg;
@@ -45,10 +47,16 @@ function Client(){
 								connected = true;
 					break;
 				case "newplayer":
-					pid = message.pid;
+					that.pid = message.pid;
+					$("#player"+that.pid+"_ready").text("You");
 					opponent = new Player(2);
 					opponent.type = "opponent";
 					break;
+				case "nwejoiner":
+					var id = message.pid;
+					if (id != that.id){
+						$("#player"+id+"_ready").text("Not Ready");
+					}
 				case "updateOpponent":
 					updateOpponent(message);
 					break;
@@ -78,7 +86,21 @@ function Client(){
 					opponent.projectiles.splice(message.projkey,1);
 					setTimeout(function(){player.isHit=false;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 					break;
+				case "ready":
+					var id = message.pid;
+					$("#player"+id+"_ready").text("Ready");
+					break;
 
+				case "start":
+
+					var timeToWait = message.timeToStart - (new Date()).getMilliseconds();
+					console.log("time to wait: "+ timeToWait);
+					// setTimeout(functon(){},timeToWait);
+					setInterval(function(){
+								GameLoop();
+							},
+							1000/FunJump.FRAME_RATE
+					);
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
@@ -167,8 +189,9 @@ function Client(){
     	}
     	else{
     		console.log("Game loop starts");
-			setInterval(function() {GameLoop();
-							render();}, 1000/FunJump.FRAME_RATE);
+    		render();
+			// setInterval(function() {GameLoop();
+							// render();}, 1000/FunJump.FRAME_RATE);
     	}
     }
 
@@ -354,6 +377,7 @@ function Client(){
 
 		collisionDetect();
 
+		render();
 		//setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
 
 	};

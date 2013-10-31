@@ -22,12 +22,21 @@
 				$("#manuScreen").height(FunJump.HEIGHT);
 				$("#manuScreen").width(FunJump.WIDTH+120);
 				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
+
+				$("#startBtn").tap(function(){
+					$("#startBtn").text("Ready");
+					client.sendToServer({type:"ready", pid:client.pid});
+					
+				});
 			})
 
 			$(window).resize(function(){
 				//Always position at center.
 				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
 			})
+
+			
+
 
 		</script>
 
@@ -46,22 +55,22 @@
 					<ul data-role="listview" data-inset="true" data-dividertheme="a"> 
          	            <li>
          	            	Player 1: 
-         	            	<span id="player0_ready">Not Ready</span>
+         	            	<span id="player0_ready">Empty Slot</span>
          	            </li> 
          	            <li>
          	            	Player 2: 
-         	            	<span id="player1_ready">Not Ready</span>
+         	            	<span id="player1_ready">Empty Slot</span>
          	            </li> 
          	            <li>
          	            	Player 3: 
-         	            	<span id="player2_ready">Not Ready</span>
+         	            	<span id="player2_ready">Empty Slot</span>
          	            </li> 
          	            <li>
          	            	Player 4: 
-         	            	<span id="player3_ready">Not Ready</span>
+         	            	<span id="player3_ready">Empty Slot</span>
          	            </li> 
          	      </ul> 
-					<button id="startBtn">Start</button>
+					<button id="startBtn">Prepare</button>
 				</div>
 			</div>
 			<p id="serverMsg">asdfsafd</p>
