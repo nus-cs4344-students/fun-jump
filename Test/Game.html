@@ -20,7 +20,7 @@
 		<script type="text/javascript">
 			$(document).ready(function(){
 				$("#manuScreen").height(FunJump.HEIGHT);
-				$("#manuScreen").width(FunJump.WIDTH);
+				$("#manuScreen").width(FunJump.WIDTH+120);
 				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
 			})
 
@@ -37,8 +37,33 @@
 			<header data-role="header">
                <h1>Fun Jump</h1>
          	</header>
-         	<canvas id = "mycanvas">
-			</canvas>
+         	<div class="ui-grid-a">
+         		<div class="ui-block-a" style="width:500px">
+	         		<canvas id = "mycanvas">
+					</canvas>
+				</div>
+				<div id="sidebar" class="ui-block-b" style="width:120px">
+					<ul data-role="listview" data-inset="true" data-dividertheme="a"> 
+         	            <li>
+         	            	Player 1: 
+         	            	<span id="player0_ready">Not Ready</span>
+         	            </li> 
+         	            <li>
+         	            	Player 2: 
+         	            	<span id="player1_ready">Not Ready</span>
+         	            </li> 
+         	            <li>
+         	            	Player 3: 
+         	            	<span id="player2_ready">Not Ready</span>
+         	            </li> 
+         	            <li>
+         	            	Player 4: 
+         	            	<span id="player3_ready">Not Ready</span>
+         	            </li> 
+         	      </ul> 
+					<button id="startBtn">Start</button>
+				</div>
+			</div>
 			<p id="serverMsg">asdfsafd</p>
 			<p id="clientMsg"></p>
         	<div id="footer" data-role="footer">
