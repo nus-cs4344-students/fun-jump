@@ -163,9 +163,6 @@ function Client(){
 		playArea.width = FunJump.WIDTH;
 		playArea.height = FunJump.HEIGHT;
 
-		readyBtn = document.getElementById('readyBtn');
-		readyBtn.onclick = function() {alert('alert');};
-
 		window.addEventListener("keydown", function(e) {
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
 			if((e.which == 37 || e.which == 39) && playerStopped == true){

@@ -19,12 +19,13 @@
 		<script type="text/javascript" src="./Client.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function(){
-				$("#manuScreen").height(FunJump.HEIGHT);
-				$("#manuScreen").width(FunJump.WIDTH+120);
-				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
+				$("#menuScreen").height(FunJump.HEIGHT);
+				$("#menuScreen").width(FunJump.WIDTH+120);
+				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
 
 				$("#startBtn").tap(function(){
-					$("#startBtn").text("Ready");
+					$(".ui-btn-text").text("Ready");
+					$(this).addClass('ui-disabled');
 					client.sendToServer({type:"ready", pid:client.pid});
 					
 				});
@@ -73,7 +74,6 @@
 					<button id="startBtn">Prepare</button>
 				</div>
 			</div>
-			<input type="button" value="Ready" id="readyBtn" onclick="" >
 			<p id="serverMsg">SERVER MSG GOES HERE</p>
 		<!--<p id="clientMsg"></p>-->
         	<div id="footer" data-role="footer">
