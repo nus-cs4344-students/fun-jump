@@ -32,7 +32,7 @@
 
 			$(window).resize(function(){
 				//Always position at center.
-				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
+				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
 			})
 
 			
@@ -42,7 +42,7 @@
 
 	</head>
 	<body>
-		<section id="manuScreen" data-role="page" data-theme="a">
+		<section id="menuScreen" data-role="page" data-theme="a">
 			<header data-role="header">
                <h1>Fun Jump</h1>
          	</header>
@@ -73,13 +73,13 @@
 					<button id="startBtn">Prepare</button>
 				</div>
 			</div>
-			<p id="serverMsg">asdfsafd</p>
-			<p id="clientMsg"></p>
+			<input type="button" value="Ready" id="readyBtn" onclick="" >
+			<p id="serverMsg">SERVER MSG GOES HERE</p>
+		<!--<p id="clientMsg"></p>-->
         	<div id="footer" data-role="footer">
         	 <h4>&copy; CS4344 AY1314</h4>
         	</div>
 		</section>
-
 	</body>
 
 </html>

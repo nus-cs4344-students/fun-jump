@@ -3,7 +3,6 @@ function Client(){
 	var that = this;
 	var socket;         // socket used to connect to server
 	var playArea;
-	var counter;
 	var initGUI;
 	var player;
 	var opponent = new Player(2);
@@ -16,6 +15,8 @@ function Client(){
 	var debugTxt;
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
+	var readyBtn;
+	var noOfPlayers = 0;
 
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -23,33 +24,62 @@ function Client(){
 
     that.sendToServer = sendToServer;
     var appendMessage = function(location, msg) {
-		if(location=="clientMsg"){
+		/*if(location=="clientMsg"){
 			document.getElementById(location).innerHTML = msg;
 		}
 		else{
 			var prev_msgs = document.getElementById(location).innerHTML;
 			document.getElementById(location).innerHTML = "[" + new Date().toString() + "] " + msg + "<br />" + prev_msgs;
-		}
+		}*/
     }
 
     var initNetwork = function() {
         // Attempts to connect to game server
         try {
             socket = new SockJS("http://" + FunJump.SERVER_NAME + ":" + location.port + "/FunJump");
+			
+			// --------------- Commands Client Receives From Server ------------------
             socket.onmessage = function (e) {
                 var message = JSON.parse(e.data);
                 switch (message.type) {
                 case "message":
                     appendMessage("serverMsg", message.content);
                     break;
-				case "map":
-					convertToPlatforms(message.content);
-								connected = true;
+				
+				case "updateReady":
 					break;
-				case "newplayer":
+				
+				case "playerDC":	//Player has disconnected....
+					var playerDisconnected = message.pid;
+					//noOfPlayers --;
+					//opponent[playerDisconnected] = null;
+					break;
+					
+				case "onConnect":	//Map also includes that the player has joined!
+					player = new Player(message.pid);
+					player.type = "player";
+					player.projectileTimer = Date.now();
+					noOfPlayers ++;
 					that.pid = message.pid;
-					$("#player"+that.pid+"_ready").text("You");
-					opponent = new Player(2);
+					
+					$("#player"+message.pid+"_ready").text("You");
+					var connectedPlayers = message.otherPlayers;
+					for(var i = 0; i < message.maxPlayers; i ++){
+						if(connectedPlayers[i] == true){
+							/*opponent[i] = new Player(message.pid);
+							opponent.type = "opponent";*/
+							//noOfPlayers++;
+							$("#player"+i+"_ready").text("Not Ready");
+						}
+					}
+					console.log(connectedPlayers);
+					convertToPlatforms(message.content);
+					connected = true;
+					break;
+					
+				case "newplayer":
+					opponent = new Player(message.pid);
+					$("#player"+message.pid+"_ready").text("Not Ready");
 					opponent.type = "opponent";
 					break;
 				case "nwejoiner":
@@ -60,10 +90,12 @@ function Client(){
 				case "updateOpponent":
 					updateOpponent(message);
 					break;
+					
 				case "updateOpponentDirection":
 					opponent.directionUpdates++;
 					renderOpponentMovement(message.playerDirection,opponent.directionUpdates);
 					break;
+					
 				case "fire":
 					//sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
 					var aProjectile = new Projectile(message.projectile.x, message.projectile.y, message.projectile.trajectory,
@@ -105,6 +137,7 @@ function Client(){
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
                 }
+				// ------------END of Commands Client Receives From Server ------------------
             }
         } catch (e) {
             console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + loction.port);
@@ -121,11 +154,18 @@ function Client(){
 		}
 	}
 
+	/*var playerReady = function(){
+		
+	}*/
+	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
 		playArea.height = FunJump.HEIGHT;
-
+		
+		readyBtn = document.getElementById('readyBtn');
+		readyBtn.onclick = function() {alert('alert');};
+		
 		window.addEventListener("keydown", function(e) {
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
 			if((e.which == 37 || e.which == 39) && playerStopped == true){
@@ -169,29 +209,29 @@ function Client(){
 
     this.start = function() {
         // Initialize game objects
-        player = new Player(1);
-		player.type = "player";
-		initNetwork();
-        initGUI();
-
-        player.projectileTimer = Date.now();
+		initNetwork();	//Initilizes player object too!
+		
+        setTimeout(function() {initGUI();});
 
 		//Start game loop inside function loading images to ensure that all images are loaded beforehand
         imageRepository = new ImageRepository();
         checkImgLoaded();
-
     }
 
     var checkImgLoaded = function(){
-
     	if(imageRepository.allImgLoaded === false){
     		setTimeout(checkImgLoaded, 500);
     	}
     	else{
-    		console.log("Game loop starts");
-    		render();
-			// setInterval(function() {GameLoop();
-							// render();}, 1000/FunJump.FRAME_RATE);
+			if(connected == false)
+				setTimeout(checkImgLoaded, 500);
+			else{	//Piggy backing here
+				// console.log("Game loop starts");
+				// setTimeout(function(){
+				// 	setInterval(function() {GameLoop();render();}, 1000/FunJump.FRAME_RATE);
+				// });
+				render();
+			}
     	}
     }
 
@@ -199,20 +239,20 @@ function Client(){
 	var render = function() {
         // Get context
         var context = playArea.getContext("2d");
-        // Clears the playArea
+        
+		// Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
 
 		drawPlatforms(context);
-		if(player.screenMove == true){
+	if(player.screenMove == true){
 			if(opponent != null){
 				opponent.projectiles.forEach(function(projectile,ind){
 					projectile.y += player.jumpSpeed;
 				});
 			}
 		}
-
 		if(opponent != null){
 			renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
 			opponent.projectiles.forEach(function(projectile,ind){
@@ -243,16 +283,16 @@ function Client(){
 			case true:
 				switch(playerid){
 
-				case 1:
+				case 0:
 					context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 2:
+				case 1:
 					context.drawImage(imageRepository.normalguya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 3:
+				case 2:
 					context.drawImage(imageRepository.angela, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 4:
+				case 3:
 					context.drawImage(imageRepository.evila, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
 				default:
@@ -262,16 +302,16 @@ function Client(){
 			case false:
 				switch(playerid){
 
-				case 1:
+				case 0:
 					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 2:
+				case 1:
 					context.drawImage(imageRepository.normalguy, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 3:
+				case 2:
 					context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 4:
+				case 3:
 					context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
 				default:

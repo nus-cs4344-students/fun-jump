@@ -7,30 +7,53 @@ require(LIB_PATH + "Platform.js");
 
 function Server(PORT) {
     var port;         // Game port
-    var count;        // Keeps track how many people are connected to server
-    var nextPID;      // PID to assign to next connected player (i.e. which player slot is open)
+    // var count;        // Keeps track how many people are connected to server
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
-    var players;      // Associative array for players, indexed via socket ID
-    var p1, p2;       // Player 1 and 2.
 	var totalNoOfPlatforms = 20;
 	var noOfPlatforms = 5;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
-	var ready = 0; //Bit operations to track if players are ready.
-
+	var maxNoOfPlayers = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
+	
+	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
+	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
+	var ready = 0;
+	var gameStarted;
+	var nextAvailSlot;
+	var numOfPlayers = 0;
+	
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
-			sockets[id].write(JSON.stringify(msg));
+			if(id!=null)	//We need this check cause player may disconnect during the game.
+				sockets[id].write(JSON.stringify(msg));
 		}
 	}
-
+	
+	//Write to everyone except the person whom the packet was sent from.
+	var broadcastToRest = function (msg,id) {
+		var i;
+		for	(i in sockets)	{
+			if((i != id) && (i !=null))
+				sockets[i].write(JSON.stringify(msg));
+		}
+	}
+	
     var unicast = function (socket, msg) {
         socket.write(JSON.stringify(msg));
     }
+	
+	//Function to find the next available slot.
+	var nextAvailSlot = function(){
+		for(var i = 0; i < connectedPlayers.length; i++){
+			if(connectedPlayers[i] == false)
+				return i;
+		}
+		return null;
+	}
 
-    this.start = function () {
+    this.start = function () {	
     	console.log("To start a game server on port " + PORT);
         try {
             var express = require('express');
@@ -38,108 +61,104 @@ function Server(PORT) {
             var sockjs = require('sockjs');
             var sock = sockjs.createServer();
 
-            // reinitialize
-            count = 0;
-            nextPID = 0;
+            //----------------INITIALIZING-----------------//
+			for(var i = 0; i < connectedPlayers.length; i++){
+				connectedPlayers[i] = false;
+			}
+			
             gameInterval = undefined;
-            players = new Object;
             sockets = new Object;
-            generatePlatforms();
-
-            // Upon connection established from a client socket
+            generatePlatforms();	//Generate the platforms for all players.
+			gameStarted = false;
+			//---------------------------------------------//
+			
+			
+			// Upon connection established from a client socket
             sock.on('connection', function (conn) {
-				sockets[count] = conn;
-                console.log("connected");
-                if (count == 5) {
-                    // Send back message that game is full
-                    //unicast(conn, {type:"message", content:"The game is full.  Come back later"});
-                    // TODO: force a disconnect
-                } else {
-					// Sends to client
-					broadcast({type:"message", content:"There is now " + count + " players"});
-					unicast(conn, {type:"map", content:platforms});
-					broadcast({type:"newjoiner", pid:count});
-					//if(count == 1){	//2nd player has joined!
-					unicast(sockets[count], {type:"newplayer", content:"New Player Joined!", pid:count});
-						//unicast(sockets[2], {type:"newplayer", content:"New Player Joined!"});
-					//}
-					count++;
-                }
+				var playerID = nextAvailSlot();
+				
+				//FULL! cannot join! Appserver should do the checking but just in case...
+				if(playerID == null){
+					unicast(conn, {type:"error", content:"Game is full!"});
+					return ;
+				}
+				
+				//Game has started! No one else can join.
+				else if(gameStarted == true){
+					unicast(conn, {type:"error", content:"Game has started! You are not able to join it."});
+					return ;
+				}
+				
+				else{
+					sockets[playerID] = conn;
+					console.log("New Player ID: " + playerID + " has connected");
+				
+					
+					//Server sends the map and the new players id to him
+					unicast(sockets[playerID], {type:"onConnect", content:platforms, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS});
+					connectedPlayers[playerID] = true;
+					
+					//Server sends to everyone else that a new player has joined, together with his playerID
+					broadcastToRest({type:"newplayer", pid:playerID},playerID);
+					numOfPlayers++;
 
-				conn.on('close', function () {
-					console.log("Disconnect");
-					var httpReq = require("http");
-					httpReq.request({
-						host: FunJump.SERVER_NAME,
-						port: FunJump.PORT,
-						path: "/removeuser/"+PORT
-					},
-					function(res){}).end();
-				});
+					
+					// --------------- Commands Server Receives From Client ------------------
+					conn.on('close', function () {
+						console.log("Player ID: " + playerID + " has DISCONNECTED!");
+						connectedPlayers[playerID] = false;	//Remove player from array.
+						sockets[playerID] = null;	//set the socket to be null.
+						
+						//Send a player disconnected command ALL clients for them to remove the player.
+						var message = {type:"playerDC", pid:playerID};
+						broadcastToRest(message,playerID);
+						numOfPlayers--;
+					});
 
-				conn.on('data', function (data) {
-					var message = JSON.parse(data);
+					conn.on('data', function (data) {
+						var message = JSON.parse(data);
+						switch (message.type) {
+						
+							// When client clicks ready button.
+							case "clientReady":
+								
+								break;
+							
+							// one of the player starts the game.
+							case "updatePlayerPosition":
+								message.type = "updateOpponent";
+								broadcastToRest(message,playerID);
+								break;
+							
+							case "updatePlayerDirection":
+								message.type = "updateOpponentDirection";
+								broadcastToRest(message,playerID);
+								break;
+								
+							case "hit":
+								broadcastToRest(message,playerID);
+								break;
 
-					switch (message.type) {
-                        // one of the player starts the game.
-						case "updatePlayerPosition":
-							message.type = "updateOpponent";
-							if(conn == sockets[1]){
-								unicast(sockets[0],message);
-							}
-							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
-								unicast(sockets[1],message);
-							}
-							break;
-						case "updatePlayerDirection":
-							message.type = "updateOpponentDirection";
-							if(conn == sockets[1]){
-								unicast(sockets[0],message);
-							}
-							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
-								unicast(sockets[1],message);
-							}
-							break;
-						case "hit":
-                        	if(conn == sockets[1]){
-								unicast(sockets[0],message);
-							}
-							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
-								unicast(sockets[1],message);
-							}
-							break;
+							case "fire":
+								broadcastToRest(message,playerID);
+								break;
 
-						case "fire":
-							console.log("fire");
-                        	if(conn == sockets[1]){
-								unicast(sockets[0],message);
-							}
-							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
-								unicast(sockets[1],message);
-							}
-							break;
+							case "projGone":
+								broadcastToRest(message,playerID);
+								break;
+							case "ready":
+								ready = ready | (1<<message.pid);
+								broadcastToRest(message, message.pid);
+								if (numOfPlayers > 1 && ready == Math.pow(2, numOfPlayers)-1){
+									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
+								}
+								break;
 
-						case "projGone":
-                        	if(conn == sockets[1]){
-								unicast(sockets[0],message);
-							}
-							else if(Object.keys(sockets).length == 2 && conn == sockets[0]){
-								unicast(sockets[1],message);
-							}
-							break;
-						case "ready":
-							ready = ready | (1<<message.pid);
-							broadcast(message);
-							if (count > 1 && ready == Math.pow(2, count)-1){
-								broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
-							}
-							break;
-
-                        default:
-                            console.log("Unhandled " + message.type);
-                    }
-				});
-
+							default:
+								console.log("Unhandled " + message.type);
+						}
+					});
+				}
             }); // socket.on("connection"
 
             // Standard code to starts the Pong server and listen
@@ -162,19 +181,17 @@ function Server(PORT) {
 		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
 		for (var i = 0; i < totalNoOfPlatforms; i++) {
 			type = Math.floor(Math.random()*5);	//1:5 ratio for special:normal
-			//console.log(type);
 			if (type == 0) type = 1;
 			else type = 0;
 			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
 			//random X position
 			position = position - platformDist;
-			console.log("Y: " + platforms[i].origY + " MAP Y: " + platforms[i].gameY);
 		}
-		//and Y position interval
 	};
 
 }
 // var gameServer = new Server();
 // gameServer.start();
 // console.log("SERVER LOADED");
+Server.MAXPLAYERS = 4;
 global.Server = Server

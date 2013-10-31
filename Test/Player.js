@@ -20,15 +20,6 @@ function Player(id) {
 	that.shoot = false; //true when player fires a projectile, for graphical display purpose
 
 	that.image = new Image();
-	if(id==1){
-		//this.image.src = "Person.png";
-		that.color = "#AAA";
-	}
-	else if (id==2){
-		//this.image.src = "";
-		that.color = "#555";
-	}
-
 	that.id = id;
 
 	that.vx = 0;
