@@ -80,8 +80,8 @@
 	  this.background.src = imagePath + "background" +".png";
 	  this.normalplatform.src = imagePath + "normal platform" +".png";
 	  this.trampoline.src = imagePath + "trampoline" +".png";
-	  this.normalguy.src = imagePath + "normal guy" +".png";
-	  this.normalguya.src = imagePath + "normal guy angry" +".png";
+	  this.normalguy.src = imagePath + "normal guy with leaf" +".png";
+	  this.normalguya.src = imagePath + "normal guy with leaf angry" +".png";
 	  this.girly.src = imagePath + "girly" +".png";
 	  this.girlya.src = imagePath + "girly angry" +".png";
 	  this.evil.src = imagePath + "evil" +".png";
@@ -91,6 +91,6 @@
 	  this.splash.src = imagePath + "splash" +".png";
 	  this.finishline.src = imagePath + "finish line" +".png";
 	}
-
+ImageRepository.NORMAL_HEIGHTDIFF = 10;
 // For node.js require
 global.ImageRepository = ImageRepository;

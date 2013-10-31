@@ -285,7 +285,7 @@ function Client(){
 					context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
 				case 1:
-					context.drawImage(imageRepository.normalguya, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					context.drawImage(imageRepository.normalguya, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
 					context.drawImage(imageRepository.angela, playerx, playery, Player.WIDTH, Player.HEIGHT);
@@ -304,7 +304,7 @@ function Client(){
 					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
 				case 1:
-					context.drawImage(imageRepository.normalguy, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
 					context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.HEIGHT);

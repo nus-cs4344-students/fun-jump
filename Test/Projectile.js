@@ -38,7 +38,7 @@ function Projectile(x, y, trajectory, size, color, speed, distance) {
 Projectile.SPEED = 0.5;
 Projectile.COLOR = '#92CD00';
 Projectile.SIZE = 5;
-Projectile.SPLASH_SIZE = 40;
+Projectile.SPLASH_SIZE = 60;
 
 // For node.js require
 global.Projectile = Projectile;

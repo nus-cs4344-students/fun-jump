@@ -142,8 +142,8 @@ function Player(id) {
 	}
 
 }
-Player.HEIGHT = 30;
-Player.WIDTH = 30;
+Player.HEIGHT = 40;
+Player.WIDTH = 40;
 Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
