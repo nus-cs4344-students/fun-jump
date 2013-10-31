@@ -10,12 +10,14 @@ function Player(id) {
 	that.yRel = 0;
 	that.yForOpp = 0;
 	that.direction = "stop";
-	that.receivedDirection = "nil";
 	that.directionUpdates = 0;
-	
+	that.type;
+
+	that.platforms = [];
 	that.projectiles = [];
 	that.projectileTimer = 0;
 	that.isHit = false;
+	that.shoot = false; //true when player fires a projectile, for graphical display purpose
 
 	that.image = new Image();
 	if(id==1){
@@ -95,13 +97,22 @@ function Player(id) {
 		}
 	}
 
-	that.checkJump = function() {
+	that.checkJump = function(platforms) {
 		if(that.y > FunJump.HEIGHT * 0.4){
 			that.setPosition(that.x, that.y - that.jumpSpeed);
 			that.screenMove = false;
 		}
 		else{
 			that.screenMove = true;
+			if(that.type=="player"){
+				platforms.forEach(function(platform,ind){
+					platform.y += that.jumpSpeed;	//Move the platform accordingly.
+				});
+
+				that.projectiles.forEach(function(projectile,ind){
+					projectile.y += that.jumpSpeed;
+				});
+			}
 		}
 
 		that.distance += that.jumpSpeed;
@@ -142,6 +153,6 @@ Player.WIDTH = 30;
 Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
-Player.SHOOTDELAY = 200;
+Player.SHOOTDELAY = 1000;
 Player.FREEZE = 100;
 global.Player = Player;
