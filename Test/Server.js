@@ -15,14 +15,14 @@ function Server(PORT) {
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
 	var maxNoOfPlayers = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
-	
+
 	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
 	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
 	var ready = 0;
 	var gameStarted;
 	var nextAvailSlot;
 	var numOfPlayers = 0;
-	
+
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -30,7 +30,7 @@ function Server(PORT) {
 				sockets[id].write(JSON.stringify(msg));
 		}
 	}
-	
+
 	//Write to everyone except the person whom the packet was sent from.
 	var broadcastToRest = function (msg,id) {
 		var i;
@@ -39,11 +39,11 @@ function Server(PORT) {
 				sockets[i].write(JSON.stringify(msg));
 		}
 	}
-	
+
     var unicast = function (socket, msg) {
         socket.write(JSON.stringify(msg));
     }
-	
+
 	//Function to find the next available slot.
 	var nextAvailSlot = function(){
 		for(var i = 0; i < connectedPlayers.length; i++){
@@ -53,7 +53,7 @@ function Server(PORT) {
 		return null;
 	}
 
-    this.start = function () {	
+    this.start = function () {
     	console.log("To start a game server on port " + PORT);
         try {
             var express = require('express');
@@ -65,50 +65,50 @@ function Server(PORT) {
 			for(var i = 0; i < connectedPlayers.length; i++){
 				connectedPlayers[i] = false;
 			}
-			
+
             gameInterval = undefined;
             sockets = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			gameStarted = false;
 			//---------------------------------------------//
-			
-			
+
+
 			// Upon connection established from a client socket
             sock.on('connection', function (conn) {
 				var playerID = nextAvailSlot();
-				
+
 				//FULL! cannot join! Appserver should do the checking but just in case...
 				if(playerID == null){
 					unicast(conn, {type:"error", content:"Game is full!"});
 					return ;
 				}
-				
+
 				//Game has started! No one else can join.
 				else if(gameStarted == true){
 					unicast(conn, {type:"error", content:"Game has started! You are not able to join it."});
 					return ;
 				}
-				
+
 				else{
 					sockets[playerID] = conn;
 					console.log("New Player ID: " + playerID + " has connected");
-				
-					
+
+
 					//Server sends the map and the new players id to him
 					unicast(sockets[playerID], {type:"onConnect", content:platforms, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS});
 					connectedPlayers[playerID] = true;
-					
+
 					//Server sends to everyone else that a new player has joined, together with his playerID
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					numOfPlayers++;
 
-					
+
 					// --------------- Commands Server Receives From Client ------------------
 					conn.on('close', function () {
 						console.log("Player ID: " + playerID + " has DISCONNECTED!");
 						connectedPlayers[playerID] = false;	//Remove player from array.
 						sockets[playerID] = null;	//set the socket to be null.
-						
+
 						//Send a player disconnected command ALL clients for them to remove the player.
 						var message = {type:"playerDC", pid:playerID};
 						broadcastToRest(message,playerID);
@@ -118,23 +118,23 @@ function Server(PORT) {
 					conn.on('data', function (data) {
 						var message = JSON.parse(data);
 						switch (message.type) {
-						
+
 							// When client clicks ready button.
 							case "clientReady":
-								
+
 								break;
-							
+
 							// one of the player starts the game.
 							case "updatePlayerPosition":
 								message.type = "updateOpponent";
 								broadcastToRest(message,playerID);
 								break;
-							
+
 							case "updatePlayerDirection":
 								message.type = "updateOpponentDirection";
 								broadcastToRest(message,playerID);
 								break;
-								
+
 							case "hit":
 								broadcastToRest(message,playerID);
 								break;
@@ -187,6 +187,11 @@ function Server(PORT) {
 			//random X position
 			position = position - platformDist;
 		}
+
+		//The last platform is actually the finish line
+		type = 3;
+		platforms[totalNoOfPlatforms] = new Platform(0,position,type);
+		position = position - platformDist;
 	};
 
 }

@@ -37,7 +37,7 @@ function Client(){
         // Attempts to connect to game server
         try {
             socket = new SockJS("http://" + FunJump.SERVER_NAME + ":" + location.port + "/FunJump");
-			
+
 			// --------------- Commands Client Receives From Server ------------------
             socket.onmessage = function (e) {
                 var message = JSON.parse(e.data);
@@ -45,23 +45,23 @@ function Client(){
                 case "message":
                     appendMessage("serverMsg", message.content);
                     break;
-				
+
 				case "updateReady":
 					break;
-				
+
 				case "playerDC":	//Player has disconnected....
 					var playerDisconnected = message.pid;
 					//noOfPlayers --;
 					//opponent[playerDisconnected] = null;
 					break;
-					
+
 				case "onConnect":	//Map also includes that the player has joined!
 					player = new Player(message.pid);
 					player.type = "player";
 					player.projectileTimer = Date.now();
 					noOfPlayers ++;
 					that.pid = message.pid;
-					
+
 					$("#player"+message.pid+"_ready").text("You");
 					var connectedPlayers = message.otherPlayers;
 					for(var i = 0; i < message.maxPlayers; i ++){
@@ -76,7 +76,7 @@ function Client(){
 					convertToPlatforms(message.content);
 					connected = true;
 					break;
-					
+
 				case "newplayer":
 					opponent = new Player(message.pid);
 					$("#player"+message.pid+"_ready").text("Not Ready");
@@ -90,12 +90,12 @@ function Client(){
 				case "updateOpponent":
 					updateOpponent(message);
 					break;
-					
+
 				case "updateOpponentDirection":
 					opponent.directionUpdates++;
 					renderOpponentMovement(message.playerDirection,opponent.directionUpdates);
 					break;
-					
+
 				case "fire":
 					//sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
 					var aProjectile = new Projectile(message.projectile.x, message.projectile.y, message.projectile.trajectory,
@@ -155,17 +155,17 @@ function Client(){
 	}
 
 	/*var playerReady = function(){
-		
+
 	}*/
-	
+
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
 		playArea.height = FunJump.HEIGHT;
-		
+
 		readyBtn = document.getElementById('readyBtn');
 		readyBtn.onclick = function() {alert('alert');};
-		
+
 		window.addEventListener("keydown", function(e) {
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
 			if((e.which == 37 || e.which == 39) && playerStopped == true){
@@ -210,7 +210,7 @@ function Client(){
     this.start = function() {
         // Initialize game objects
 		initNetwork();	//Initilizes player object too!
-		
+
         setTimeout(function() {initGUI();});
 
 		//Start game loop inside function loading images to ensure that all images are loaded beforehand
@@ -239,7 +239,7 @@ function Client(){
 	var render = function() {
         // Get context
         var context = playArea.getContext("2d");
-        
+
 		// Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
@@ -405,14 +405,16 @@ function Client(){
 		}
 
 
-		if(player.isHit == false){
+		if(player.isHit == false && player.finish == false){
 			//checkMovement();
 			checkPlayerFall();
-			checkCollision();
+			checkCollisionForPlayer();
 		}
 
-		if(opponent.isHit == false){
+		if(opponent.isHit == false && opponent.finish == false){
+
 			checkOpponentFall();
+			checkCollisionForOpponent(opponent);
 		}
 
 		collisionDetect();
@@ -451,14 +453,7 @@ function Client(){
 		    for (var key in player.projectiles) {
 		        if (player.projectiles[key] != undefined && player.projectiles[key].landedTimer<=1) {
 		 				if(opponent != null && opponent.isHit == false){
-		 					// if(((Math.abs(player.projectiles[key].x-opponent.x)<player.projectiles[key].size)
-		 					// || (Math.abs(player.projectiles[key].x-opponent.x-Player.WIDTH)<player.projectiles[key].size))
-		 					// && ((Math.abs(player.projectiles[key].distance-opponent.distance)<player.projectiles[key].size)
-		 					// || (Math.abs(player.projectiles[key].distance-opponent.distance+Player.HEIGHT)<player.projectiles[key].size)))
-		 					/*
-							 var dist = Math.sqrt(Math.pow((player.projectiles[key].x - opponent.x - Player.WIDTH/2), 2) + Math.pow((player.projectiles[key].y - opponent.y - Player.HEIGHT/2), 2));
-							console.log(dist);
-							if(dist < 3*Player.WIDTH/2 + Projectile.SIZE)*/
+
 							if(player.projectiles[key].x - Projectile.SIZE < opponent.x + Player.WIDTH &&
          						player.projectiles[key].x + Projectile.SIZE > opponent.x &&
          						player.projectiles[key].y - Projectile.SIZE < opponent.y + Player.HEIGHT &&
@@ -567,28 +562,60 @@ function Client(){
 				context.drawImage(imageRepository.normalplatform,platform.x,platform.y)
 			else if(platform.type == 1)
 				context.drawImage(imageRepository.trampoline,platform.x,platform.y)
+			else if(platform.type == 3)
+				context.drawImage(imageRepository.finishline,platform.x,platform.y)
 		});
 	}
 
-	var checkCollision = function(){
+	var checkCollisionForPlayer = function(){
 		platforms.forEach(function(platform, no){
 			//Client will render player position when platform collision happens based on requirements
-			if(player.isFalling &&
-			(player.x < platform.x + Platform.WIDTH) &&
-			(player.x + Player.WIDTH > platform.x) &&
-			(player.y + Player.HEIGHT > platform.y) &&
-			(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
-				platform.onCollide(player);
+			switch(platform.type){
+				case 3:
+					if(player.isFalling &&
+					(player.y + Player.HEIGHT > platform.y) &&
+					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+						player.finish = true;
+						player.y = platform.y-Player.HEIGHT;
+					}
+					break;
+				default:
+					if(player.isFalling &&
+					(player.x < platform.x + Platform.WIDTH) &&
+					(player.x + Player.WIDTH > platform.x) &&
+					(player.y + Player.HEIGHT > platform.y) &&
+					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
+						platform.onCollide(player);
+					}
 			}
 
+		});
+	}
+
+	var checkCollisionForOpponent = function(opponent){
+		platforms.forEach(function(platform, no){
 			//Client will render opponent collision
-			if(opponent.isFalling &&
-			(opponent.x < platform.x + Platform.WIDTH) &&
-			(opponent.x + Player.WIDTH > platform.x) &&
-			(opponent.distance - Player.HEIGHT < platform.gameY) &&
-			(opponent.distance > platform.gameY)){
-				platform.onCollide(opponent);
+			switch(platform.type){
+				case 3:
+
+					if(opponent.isFalling &&
+					(opponent.distance - Player.HEIGHT < platform.gameY) &&
+					(opponent.distance > platform.gameY)){
+						opponent.finish = true;
+						opponent.y = platform.y-Player.HEIGHT;
+					}
+
+					break;
+				default:
+					if(opponent.isFalling &&
+					(opponent.x < platform.x + Platform.WIDTH) &&
+					(opponent.x + Player.WIDTH > platform.x) &&
+					(opponent.distance - Player.HEIGHT < platform.gameY) &&
+					(opponent.distance > platform.gameY)){
+						platform.onCollide(opponent);
+					}
 			}
+
 		});
 	}
 	var debugFn = function(x){

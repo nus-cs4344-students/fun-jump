@@ -18,7 +18,7 @@ function Player(id) {
 	that.projectileTimer = 0;
 	that.isHit = false;
 	that.shoot = false; //true when player fires a projectile, for graphical display purpose
-
+	that.finish = false;//true if player reaches finish line
 	that.image = new Image();
 	that.id = id;
 

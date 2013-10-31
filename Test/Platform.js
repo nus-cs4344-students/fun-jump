@@ -4,17 +4,17 @@ function Platform (x, y, type){
 	that.origY = y;
 	that.color = '#ABCDEF';
 	that.gameY = FunJump.HEIGHT-that.origY;
-	
+
 	if (type === 1) {
 		that.color = '#975310';
 	}
-	
+
 	that.onCollide = function(player){
-		player.fallStop();
-		if(type ==1)
+			player.fallStop();
+			if(type ==1)
 			player.jumpSpeed = Platform.SPECIALJUMPSPEED;
 	};
-	
+
 	that.x = x;
 	that.y = y;
 	that.type = type;
