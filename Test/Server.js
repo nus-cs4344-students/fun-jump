@@ -35,7 +35,7 @@ function Server(PORT) {
 	var broadcastToRest = function (msg,id) {
 		var i;
 		for	(i in sockets)	{
-			if((i != id) && (i !=null))
+			if((i != id) && (i !=null) && sockets[i] != null)
 				sockets[i].write(JSON.stringify(msg));
 		}
 	}
