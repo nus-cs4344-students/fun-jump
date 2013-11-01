@@ -245,23 +245,33 @@ function Client(){
 		// Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
 
-		drawPlatforms(context);
-	if(player.screenMove == true){
-			if(opponent != null){
-
-				opponent.projectiles.forEach(function(projectile,ind){
-					projectile.y += player.jumpSpeed;
-				});
-			}
+		if(player!=null){
+			drawProgressBar(context);
 		}
+
+		//draw opponent
 		if(opponent != null){
 			if(opponent.finish == true){
 				renderPlayer(context, opponent.id, opponent.x, platforms[platforms.length-1].y-Player.HEIGHT, opponent.isHit, opponent.shoot, opponent);
 			}
 			else{
-						renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
+				renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
+			}
+		}
+
+		//draw player
+		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
+
+		drawPlatforms(context);
+
+
+		if(opponent != null){
+
+			if(player.screenMove == true){
+					opponent.projectiles.forEach(function(projectile,ind){
+						projectile.y += player.jumpSpeed;
+					});
 			}
 
 			opponent.projectiles.forEach(function(projectile,ind){
@@ -280,6 +290,55 @@ function Client(){
 			}
    		});
     }
+
+    var drawProgressBar = function(context){
+
+    	var progressX = FunJump.WIDTH-ImageRepository.PROGRESS_WIDTH;
+    	var progressY = (FunJump.HEIGHT-ImageRepository.PROGRESS_HEIGHT)/2;
+		context.drawImage(imageRepository.progress, progressX, progressY, ImageRepository.PROGRESS_WIDTH, ImageRepository.PROGRESS_HEIGHT);
+
+		if(opponent!=null){
+			drawPlayerIcon(context, opponent, progressX, progressY);
+		}
+
+		drawPlayerIcon(context, player, progressX, progressY);
+
+
+	}
+
+	var drawPlayerIcon = function(context, player, progressx, progressy){
+
+		var difference = ImageRepository.PROGRESS_HEIGHT-ImageRepository.PROGRESS_LENGTH;
+		var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/((totalNoOfPlatforms+1)* platformDist))*ImageRepository.PROGRESS_LENGTH;
+
+		positionY = Math.max(positionY, progressy+(difference/2));
+
+		switch(player.id){
+
+		case 0:
+			//context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
+			context.fillStyle = 'pink';
+
+			break;
+		case 1:
+			//context.drawImage(imageRepository.normalguya, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
+			context.fillStyle = 'green';
+			break;
+		case 2:
+			//context.drawImage(imageRepository.angela, playerx, playery, Player.WIDTH, Player.HEIGHT);
+			context.fillStyle = 'yellow';
+			break;
+		case 3:
+			//context.drawImage(imageRepository.evila, playerx, playery, Player.WIDTH, Player.HEIGHT);
+			context.fillStyle = 'red';
+			break;
+		default:
+			console.log("Invalid player id: "+ playerid);
+			context.fillStyle = 'black';
+		}
+
+		context.fillRect(progressx, positionY, ImageRepository.PROGRESS_WIDTH, 5);
+	}
 
 	var renderOpponent = function(context){
 		context.fillStyle = opponent.color;

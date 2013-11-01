@@ -19,6 +19,7 @@
 	  this.angela = new Image();
 	  this.splash = new Image();
 	  this.finishline = new Image();
+	  this.progress = new Image();
 
 	  this.allImgLoaded = false;
 
@@ -26,7 +27,7 @@
 
 
 	  // Ensure all images have loaded before starting the game
-	  var numImages = 13;
+	  var numImages = 14;
 	  var numLoaded = 0;
 	  function imageLoaded() {
 	    numLoaded++;
@@ -71,7 +72,10 @@
 	  this.splash.onload = function() {
 	    imageLoaded();
 	  }
-	   this.finishline.onload = function() {
+	  this.finishline.onload = function() {
+	    imageLoaded();
+	  }
+	  this.progress.onload = function() {
 	    imageLoaded();
 	  }
 
@@ -90,7 +94,11 @@
 	  this.angela.src = imagePath + "angel angry" +".png";
 	  this.splash.src = imagePath + "splash" +".png";
 	  this.finishline.src = imagePath + "finish line" +".png";
+	  this.progress.src = imagePath + "progress bar" +".png";
 	}
 ImageRepository.NORMAL_HEIGHTDIFF = 10;
+ImageRepository.PROGRESS_HEIGHT = 420;
+ImageRepository.PROGRESS_WIDTH = 15;
+ImageRepository.PROGRESS_LENGTH = 400;
 // For node.js require
 global.ImageRepository = ImageRepository;
