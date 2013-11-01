@@ -2,20 +2,22 @@
 function Client(){
 	var that = this;
 	var socket;         // socket used to connect to server
+	
+	//FOR GUI
 	var playArea;
-	var initGUI;
-	var player;
-	var opponent = new Player(2);
-	var counter = 0;
-	var playerStopped = true;
-	that.pid = 0;
-	var connected = false;
 	var mouse;
 	var imageRepository;
+	
+	//For player / opponent objects
+	var player;
+	var opponentArr;
+	var playerStopped = true;
+	var connected = false;
+
+	//For global objects
 	var debugTxt;
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
-	var readyBtn;
 	var noOfPlayers = 0;
 
     var sendToServer = function (msg) {
@@ -50,9 +52,8 @@ function Client(){
 					break;
 
 				case "playerDC":	//Player has disconnected....
-					var playerDisconnected = message.pid;
-					//noOfPlayers --;
-					//opponent[playerDisconnected] = null;
+					noOfPlayers --;
+					opponentArr[message.pid] = null;
 					break;
 
 				case "onConnect":	//Map also includes that the player has joined!
@@ -64,36 +65,35 @@ function Client(){
 
 					$("#player"+message.pid+"_ready").text("You");
 					var connectedPlayers = message.otherPlayers;
+					opponentArr = new Array(message.maxPlayers);
 					for(var i = 0; i < message.maxPlayers; i ++){
 						if(connectedPlayers[i] == true){
-							/*opponent[i] = new Player(message.pid);
-							opponent.type = "opponent";*/
-							//noOfPlayers++;
+							opponentArr[i] = new Player(i);
+							opponentArr[i].type = "opponent";
+							noOfPlayers++;
 							$("#player"+i+"_ready").text("Not Ready");
 						}
 					}
-					console.log(connectedPlayers);
+					
 					convertToPlatforms(message.content);
+					render();
 					connected = true;
 					break;
 
 				case "newplayer":
-					opponent = new Player(message.pid);
+					opponentArr[message.pid] = new Player(message.pid);
+					opponentArr[message.pid].type = "opponent";
 					$("#player"+message.pid+"_ready").text("Not Ready");
-					opponent.type = "opponent";
+					render();
 					break;
-				case "nwejoiner":
-					var id = message.pid;
-					if (id != that.id){
-						$("#player"+id+"_ready").text("Not Ready");
-					}
+					
 				case "updateOpponent":
 					updateOpponent(message);
 					break;
 
 				case "updateOpponentDirection":
-					opponent.directionUpdates++;
-					renderOpponentMovement(message.playerDirection,opponent.directionUpdates);
+					opponentArr[message.pid].directionUpdates++;
+					renderOpponentMovement(message.playerDirection,opponentArr[message.pid].directionUpdates,message.pid);
 					break;
 
 				case "fire":
@@ -103,37 +103,41 @@ function Client(){
 										message.projectile.distance);
 					aProjectile.updatePos((Date.now()-message.fireTime)/1000);
 					aProjectile.y = player.distance-aProjectile.distance+player.y;
-					opponent.shoot = true;
-					opponent.projectiles.splice(message.projkey,0,aProjectile);
+					
+					opponentArr[message.pid].shoot = true;
+					opponentArr[message.pid].projectiles.splice(message.projkey,0,aProjectile);
+					
 					break;
 
 				case "projGone":
 					//sendToServer({type:"projGone", projkey: key});
-					opponent.projectiles[message.projkey].canRemove = true;
+					
+					opponentArr[message.pid].projectiles[message.projkey].canRemove = true;
+					
 					break;
 
 				case "hit":
 					//sendToServer({type:"hit", projkey: key});
 					player.isHit = true;
 					player.canMove = false;
-					opponent.projectiles.splice(message.projkey,1);
+					
+					opponentArr[message.pid].projectiles.splice(message.projkey,1);
+					
 					setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 					break;
+					
 				case "ready":
 					var id = message.pid;
 					$("#player"+id+"_ready").text("Ready");
 					break;
 
 				case "start":
-
 					var timeToWait = message.timeToStart - (new Date()).getMilliseconds();
 					console.log("time to wait: "+ timeToWait);
 					// setTimeout(functon(){},timeToWait);
-					setInterval(function(){
-								GameLoop();
-							},
-							1000/FunJump.FRAME_RATE
-					);
+					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
+					break;
+					
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
@@ -147,17 +151,14 @@ function Client(){
 
 	//This function is needed to reduce the number of updates by the client for movement!
 	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
-	var renderOpponentMovement = function(direction,noOfUpdates){
-		if(noOfUpdates == opponent.directionUpdates && opponent.canMove == true){
-			opponent.move(direction);
-			if(!(direction == "stop" && opponent.vx == 0))
-				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
+	//TO FIX: Constant left / right movement at wall.
+	var renderOpponentMovement = function(direction,noOfUpdates,oid){
+		if(noOfUpdates == opponentArr[oid].directionUpdates && opponentArr[oid].canMove == true){
+			opponentArr[oid].move(direction);
+			if(!(direction == "stop" && opponentArr[oid].vx == 0))
+				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates,oid);}, 1000/FunJump.FRAME_RATE);	//Similar to game looping
 		}
 	}
-
-	/*var playerReady = function(){
-
-	}*/
 
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
@@ -210,31 +211,17 @@ function Client(){
 	}
 
     this.start = function() {
-        // Initialize game objects
 		initNetwork();	//Initilizes player object too!
-
-        setTimeout(function() {initGUI();});
-
-		//Start game loop inside function loading images to ensure that all images are loaded beforehand
-        imageRepository = new ImageRepository();
+		initGUI();	//Initialize listeners and context etc.
+        imageRepository = new ImageRepository();	//Initialize images
         checkImgLoaded();
     }
 
     var checkImgLoaded = function(){
-    	if(imageRepository.allImgLoaded === false){
+    	if(imageRepository.allImgLoaded === false || connected == false)
     		setTimeout(checkImgLoaded, 500);
-    	}
-    	else{
-			if(connected == false)
-				setTimeout(checkImgLoaded, 500);
-			else{	//Piggy backing here
-				// console.log("Game loop starts");
-				// setTimeout(function(){
-				// 	setInterval(function() {GameLoop();render();}, 1000/FunJump.FRAME_RATE);
-				// });
-				render();
-			}
-    	}
+		else
+			render();	//Render once.
     }
 
 
@@ -250,38 +237,39 @@ function Client(){
 			drawProgressBar(context);
 		}
 
-		//draw opponent
-		if(opponent != null){
-			if(opponent.finish == true){
-				renderPlayer(context, opponent.id, opponent.x, platforms[platforms.length-1].y-Player.HEIGHT, opponent.isHit, opponent.shoot, opponent);
+		//draw opponent. Loop through array to find all valid opponents. then draw it out.
+		for(var i = 0; i < opponentArr.length; i ++){
+			if(opponentArr[i] != null){
+				if(opponentArr[i].finish == true)
+					renderPlayer(context, opponentArr[i].id, opponentArr[i].x, platforms[platforms.length-1].y-Player.HEIGHT, opponentArr[i].isHit, opponentArr[i].shoot, opponentArr[i]);
+				else
+					renderPlayer(context, opponentArr[i].id, opponentArr[i].x, opponentArr[i].yForOpp, opponentArr[i].isHit, opponentArr[i].shoot, opponentArr[i]);
 			}
-			else{
-				renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
-			}
+			
 		}
 
 		//draw player
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
-
 		drawPlatforms(context);
 
+		for(var i = 0; i < opponentArr.length; i ++){
+			var opponent = opponentArr[i];
+			if(opponent != null){
 
-		if(opponent != null){
-
-			if(player.screenMove == true){
-					opponent.projectiles.forEach(function(projectile,ind){
-						projectile.y += player.jumpSpeed;
-					});
-			}
-
-			opponent.projectiles.forEach(function(projectile,ind){
-				//Draw the bullet if it is within the player's screen
-				if(projectile.distance+Projectile.SIZE>player.yRel){
-					renderProjectile(context,projectile);
+				if(player.screenMove == true){
+						opponent.projectiles.forEach(function(projectile,ind){
+							projectile.y += player.jumpSpeed;
+						});
 				}
-   			});
-		}
 
+				opponent.projectiles.forEach(function(projectile,ind){
+					//Draw the bullet if it is within the player's screen
+					if(projectile.distance+Projectile.SIZE>player.yRel){
+						renderProjectile(context,projectile);
+					}
+				});
+			}
+		}
 		player.projectiles.forEach(function(projectile,ind){
 			//Draw the bullet if it is within the player's screen
 			if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -291,19 +279,18 @@ function Client(){
    		});
     }
 
+	//Draw the progress bar for everyone.
     var drawProgressBar = function(context){
 
     	var progressX = FunJump.WIDTH-ImageRepository.PROGRESS_WIDTH;
     	var progressY = (FunJump.HEIGHT-ImageRepository.PROGRESS_HEIGHT)/2;
 		context.drawImage(imageRepository.progress, progressX, progressY, ImageRepository.PROGRESS_WIDTH, ImageRepository.PROGRESS_HEIGHT);
 
-		if(opponent!=null){
-			drawPlayerIcon(context, opponent, progressX, progressY);
+		for(var i = 0; i < opponentArr.length; i++){
+			if(opponentArr[i]!=null)
+				drawPlayerIcon(context, opponentArr[i], progressX, progressY);
 		}
-
 		drawPlayerIcon(context, player, progressX, progressY);
-
-
 	}
 
 	var drawPlayerIcon = function(context, player, progressx, progressy){
@@ -340,14 +327,9 @@ function Client(){
 		context.fillRect(progressx, positionY, ImageRepository.PROGRESS_WIDTH, 5);
 	}
 
-	var renderOpponent = function(context){
-		context.fillStyle = opponent.color;
-		context.fillRect(opponent.x, opponent.yForOpp, Player.WIDTH, Player.HEIGHT);
-	}
-
 	var renderPlayer = function(context, playerid, playerx, playery, playerIsHit, playerShoot, player){
-
 		var condition = playerShoot||playerIsHit;
+		
 		switch(condition){
 			case true:
 				switch(playerid){
@@ -355,7 +337,7 @@ function Client(){
 				case 0:
 					context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 1:
+				case 1:	//@ Kathy, why is this so complicated compared to the rest??
 					context.drawImage(imageRepository.normalguya, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
@@ -370,11 +352,10 @@ function Client(){
 				break;
 			case false:
 				switch(playerid){
-
 				case 0:
 					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 1:
+				case 1: //@ Kathy, why is this so complicated compared to the rest??
 					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
@@ -410,22 +391,22 @@ function Client(){
 
 	//NEED TO ADD IN JITTER OPTION HERE!
 	var updateOpponent = function(message){
+		var oID = message.pid;	//Opponent ID
 		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
 
 		if(message.playerFinish == true){
-
-				opponent.distance = message.playerDistance;
-				opponent.x = message.playerX;
-				opponent.y = message.playerY;
-				opponent.yForOpp = platforms[platforms.length-1].y - Player.HEIGHT;
-				opponent.canMove = message.playerCanMove;
-				opponent.finish = true;
+			opponentArr[oID].distance = message.playerDistance;
+			opponentArr[oID].x = message.playerX;
+			opponentArr[oID].y = message.playerY;
+			opponentArr[oID].yForOpp = platforms[platforms.length-1].y - Player.HEIGHT;
+			opponentArr[oID].canMove = message.playerCanMove;
+			opponentArr[oID].finish = true;
 		}
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
-		else if( ((opponent.x + convMaxXThres) < message.playerX )||
-			((opponent.x - convMaxXThres) > message.playerX ) ||
-			((opponent.distance - convMaxYThres) > message.playerDistance)||
-			((opponent.distance + convMaxYThres) < message.playerDistance)	){
+		else if( ((opponentArr[oID].x + convMaxXThres) < message.playerX )||
+			((opponentArr[oID].x - convMaxXThres) > message.playerX ) ||
+			((opponentArr[oID].distance - convMaxYThres) > message.playerDistance)||
+			((opponentArr[oID].distance + convMaxYThres) < message.playerDistance)	){
 
 			/*console.log("RESET POS " +
 				((opponent.x + convXThres) < message.playerX ) + " " +
@@ -434,15 +415,15 @@ function Client(){
 				((opponent.distance + convYThres) < message.playerDistance))
 
 			console.log("PREV DISTANCE " + opponent.distance + " NEW DIST " +  message.playerDistance);*/
-				opponent.distance = message.playerDistance;
-				opponent.isFalling = message.playerIsFalling;
-				opponent.isJumping = message.playerIsJumping;
-				opponent.x = message.playerX;
-				opponent.y = message.playerY;
-				opponent.jumpSpeed = message.playerJumpSpeed;
-				opponent.fallSpeed = message.playerFallSpeed;
-				opponent.yForOpp = tempYForOpp;
-				opponent.canMove = message.playerCanMove;
+				opponentArr[oID].distance = message.playerDistance;
+				opponentArr[oID].isFalling = message.playerIsFalling;
+				opponentArr[oID].isJumping = message.playerIsJumping;
+				opponentArr[oID].x = message.playerX;
+				opponentArr[oID].y = message.playerY;
+				opponentArr[oID].jumpSpeed = message.playerJumpSpeed;
+				opponentArr[oID].fallSpeed = message.playerFallSpeed;
+				opponentArr[oID].yForOpp = tempYForOpp;
+				opponentArr[oID].canMove = message.playerCanMove;
 		}
 
 		else{	//It is within the range, so do simple convergence.
@@ -470,11 +451,11 @@ function Client(){
 	        if (player.projectiles[key].landedTimer >= 5)
 	        {
 	            player.projectiles.splice(key, 1);
-	            sendToServer({type:"projGone", projkey: key});
+	            sendToServer({type:"projGone", projkey: key, pid:player.id});
 	        }
 	    }
 
-	    if(opponent != null){
+	    /*if(opponent != null){
 		    for (var key in opponent.projectiles) {
 		        opponent.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
 		        if (opponent.projectiles[key].canRemove==true && opponent.projectiles[key].landedTimer >= 10)
@@ -482,13 +463,15 @@ function Client(){
 		            opponent.projectiles.splice(key, 1);
 		        }
 		    }
-		}
+		}AA*/
 
-
+		/*
+			If the player can move, we should check his jumping, check collision with platform
+			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
+		*/
 		if(player.canMove == true){
-			//checkMovement();
 			checkPlayerFall();
-			checkCollisionForPlayer();
+			checkPlatformCollisionForPlayer();
 
 			if(player.start == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
 				player.canMove = false;
@@ -502,25 +485,23 @@ function Client(){
 			}
 		}
 
-		if(opponent.canMove == true){
-
-			checkOpponentFall();
-			checkCollisionForOpponent(opponent);
-
-			if(opponent.start == false && opponent.y >= FunJump.HEIGHT - Player.HEIGHT){
-				opponent.canMove = false;
-				opponent.vx = 0;
-				setTimeout(function(){
-					getNearestPlatform(opponent);
-				}, 2000);
+		for(var i = 0; i < opponentArr.length; i ++){
+			if(opponentArr[i]!=null && opponentArr[i].canMove == true){
+				checkOpponentFall(opponentArr[i]);
+				checkCollisionForOpponent(opponentArr[i]);
+				collisionDetect(opponentArr[i]);
+				
+				if(opponentArr[i].start == false && opponentArr[i].y >= FunJump.HEIGHT - Player.HEIGHT){
+					opponentArr[i].canMove = false;
+					opponentArr[i].vx = 0;
+					setTimeout(function(){
+						getNearestPlatform(opponentArr[i]);
+					}, 2000);
+				}
 			}
 		}
 
-		collisionDetect();
-
-		render();
-		//setTimeout(GameLoop, 1000/FunJump.FRAME_RATE);
-
+		render();	
 	};
 
 	var getNearestPlatform = function(player){
@@ -576,12 +557,12 @@ function Client(){
 	        player.projectileTimer = Date.now();
 	        player.shoot = true;
 
-	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer});
+	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer, pid: player.id});
     	}
 	}
 
 	//detect a bullet hit
-	var collisionDetect = function(){
+	var collisionDetect = function(opponent){
 		if (player.projectiles.length > 0) {
 		    for (var key in player.projectiles) {
 		        if (player.projectiles[key] != undefined && player.projectiles[key].landedTimer<=1) {
@@ -596,10 +577,10 @@ function Client(){
 		 						opponent.isHit = true;
 		 						opponent.canMove = false;
 		 						player.projectiles.splice(key,1);
-		 						sendToServer({type:"hit", projkey: key});
+		 						sendToServer({type:"hit", projkey: key, pid: player.id});	//@Kathy what should be pid?
 		 						setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 		 					}
-		 				}
+					}
 		        }
 		    }
 		}
@@ -608,7 +589,7 @@ function Client(){
 	var jumping = 0;
 	var falling = 0;
 
-	var checkOpponentFall = function(){
+	var checkOpponentFall = function(opponent){
 		if (opponent.isJumping){
 			opponent.checkJump();
 		}
@@ -646,11 +627,14 @@ function Client(){
 			playerJumpSpeed: player.jumpSpeed,
 			playerFallSpeed: player.fallSpeed,
 			playerCanMove: player.canMove,
-			playerFinish: player.finish});
+			playerFinish: player.finish,
+			pid: player.id});
 	}
 
 	var updatePlayerDirection = function(){
-		sendToServer({type:"updatePlayerDirection",playerDirection: player.direction});
+		sendToServer({type:"updatePlayerDirection",
+			playerDirection: player.direction,
+			pid:player.id});
 	}
 
 	var movePlayer = function(e,updateDirection){
@@ -703,11 +687,11 @@ function Client(){
 		});
 	}
 
-	var checkCollisionForPlayer = function(){
+	var checkPlatformCollisionForPlayer = function(){
 		platforms.forEach(function(platform, no){
 			//Client will render player position when platform collision happens based on requirements
 			switch(platform.type){
-				case 3:
+				case 3:	//Finish line
 					if(player.y + Player.HEIGHT < platform.y){
 						player.finish = true;
 						player.canMove = false;

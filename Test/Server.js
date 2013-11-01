@@ -7,7 +7,6 @@ require(LIB_PATH + "Platform.js");
 
 function Server(PORT) {
     var port;         // Game port
-    // var count;        // Keeps track how many people are connected to server
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
 	var totalNoOfPlatforms = 20;
@@ -118,12 +117,6 @@ function Server(PORT) {
 					conn.on('data', function (data) {
 						var message = JSON.parse(data);
 						switch (message.type) {
-
-							// When client clicks ready button.
-							case "clientReady":
-
-								break;
-
 							// one of the player starts the game.
 							case "updatePlayerPosition":
 								message.type = "updateOpponent";
@@ -153,7 +146,6 @@ function Server(PORT) {
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
 								}
 								break;
-
 							default:
 								console.log("Unhandled " + message.type);
 						}
