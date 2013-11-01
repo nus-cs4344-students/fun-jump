@@ -115,8 +115,9 @@ function Client(){
 				case "hit":
 					//sendToServer({type:"hit", projkey: key});
 					player.isHit = true;
+					player.canMove = false;
 					opponent.projectiles.splice(message.projkey,1);
-					setTimeout(function(){player.isHit=false;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+					setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 					break;
 				case "ready":
 					var id = message.pid;
@@ -147,7 +148,7 @@ function Client(){
 	//This function is needed to reduce the number of updates by the client for movement!
 	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
 	var renderOpponentMovement = function(direction,noOfUpdates){
-		if(noOfUpdates == opponent.directionUpdates){
+		if(noOfUpdates == opponent.directionUpdates && opponent.canMove == true){
 			opponent.move(direction);
 			if(!(direction == "stop" && opponent.vx == 0))
 				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates);}, 1000/FunJump.FRAME_RATE);
@@ -166,8 +167,10 @@ function Client(){
 		window.addEventListener("keydown", function(e) {
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
 			if((e.which == 37 || e.which == 39) && playerStopped == true){
-				playerStopped = false;
-				movePlayer(e,true);
+				if(player.canMove == true){
+					playerStopped = false;
+					movePlayer(e,true);
+				}
 			}
 
 			if(e.which == 38)
@@ -177,8 +180,10 @@ function Client(){
 
 		window.addEventListener("keyup", function(e) {
 			if (e.which == 37 || e.which == 39){
-				playerStopped = true;
-				stopPlayer(true);
+				if(player.canMove == true){
+					playerStopped = true;
+					stopPlayer(true);
+				}
 			}
 		}, false);
 
@@ -245,13 +250,20 @@ function Client(){
 		drawPlatforms(context);
 	if(player.screenMove == true){
 			if(opponent != null){
+
 				opponent.projectiles.forEach(function(projectile,ind){
 					projectile.y += player.jumpSpeed;
 				});
 			}
 		}
 		if(opponent != null){
-			renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
+			if(opponent.finish == true){
+				renderPlayer(context, opponent.id, opponent.x, platforms[platforms.length-1].y-Player.HEIGHT, opponent.isHit, opponent.shoot, opponent);
+			}
+			else{
+						renderPlayer(context, opponent.id, opponent.x, opponent.yForOpp, opponent.isHit, opponent.shoot, opponent);
+			}
+
 			opponent.projectiles.forEach(function(projectile,ind){
 				//Draw the bullet if it is within the player's screen
 				if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -341,8 +353,17 @@ function Client(){
 	var updateOpponent = function(message){
 		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
 
+		if(message.playerFinish == true){
+
+				opponent.distance = message.playerDistance;
+				opponent.x = message.playerX;
+				opponent.y = message.playerY;
+				opponent.yForOpp = platforms[platforms.length-1].y - Player.HEIGHT;
+				opponent.canMove = message.playerCanMove;
+				opponent.finish = true;
+		}
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
-		if( ((opponent.x + convMaxXThres) < message.playerX )||
+		else if( ((opponent.x + convMaxXThres) < message.playerX )||
 			((opponent.x - convMaxXThres) > message.playerX ) ||
 			((opponent.distance - convMaxYThres) > message.playerDistance)||
 			((opponent.distance + convMaxYThres) < message.playerDistance)	){
@@ -358,9 +379,11 @@ function Client(){
 				opponent.isFalling = message.playerIsFalling;
 				opponent.isJumping = message.playerIsJumping;
 				opponent.x = message.playerX;
+				opponent.y = message.playerY;
 				opponent.jumpSpeed = message.playerJumpSpeed;
 				opponent.fallSpeed = message.playerFallSpeed;
 				opponent.yForOpp = tempYForOpp;
+				opponent.canMove = message.playerCanMove;
 		}
 
 		else{	//It is within the range, so do simple convergence.
@@ -403,32 +426,35 @@ function Client(){
 		}
 
 
-		if(player.isHit == false && player.finish == false && player.die == false){
+		if(player.canMove == true){
 			//checkMovement();
 			checkPlayerFall();
 			checkCollisionForPlayer();
+
+			if(player.start == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
+				player.canMove = false;
+				player.vx = 0;
+				setTimeout(function(){
+					getNearestPlatform(player);
+					updatePlayerVariables();
+					playerStopped = true;
+					stopPlayer(true);
+				}, 2000);
+			}
 		}
 
-		if(opponent.isHit == false && opponent.finish == false && opponent.die == false){
+		if(opponent.canMove == true){
 
 			checkOpponentFall();
 			checkCollisionForOpponent(opponent);
-		}
 
-		if(player.start == false && player.die == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
-			player.die = true;
-			setTimeout(function(){
-				getNearestPlatform(player);
-				player.die = false;
-			}, 2000);
-		}
-
-		if(opponent.start == false && opponent.die == false && opponent.y >= FunJump.HEIGHT - Player.HEIGHT){
-			opponent.die = true;
-			setTimeout(function(){
-				getNearestPlatform(opponent);
-				opponent.die = false;
-			}, 2000);
+			if(opponent.start == false && opponent.y >= FunJump.HEIGHT - Player.HEIGHT){
+				opponent.canMove = false;
+				opponent.vx = 0;
+				setTimeout(function(){
+					getNearestPlatform(opponent);
+				}, 2000);
+			}
 		}
 
 		collisionDetect();
@@ -451,17 +477,30 @@ function Client(){
 
 		//Set player to nearest platform
 		player.distance = nearestPlatform.gameY + 10 + Player.HEIGHT;
-		player.y = nearestPlatform.y - 10 - Player.HEIGHT;
+		if(player.type == "opponent"){
+
+			var diff = player.yForOpp - player.y;
+			player.yForOpp = nearestPlatform.y - 10 - Player.HEIGHT;
+			player.y = player.yForOpp - diff;
+
+		}
+		else{
+			player.y = nearestPlatform.y - 10 - Player.HEIGHT;
+		}
+
 		player.x = nearestPlatform.x;	//Adjust the position such that its half of the platform
 		player.fallSpeed = 5;
 		player.isJumping = false;
 		player.isFalling = true;
+		player.vx = 0;
+
+		player.canMove = true;
 
 	}
 
 	var fireBullet = function(){
 
-		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.isHit == false && player.finish == false) {
+		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
@@ -487,18 +526,19 @@ function Client(){
 		if (player.projectiles.length > 0) {
 		    for (var key in player.projectiles) {
 		        if (player.projectiles[key] != undefined && player.projectiles[key].landedTimer<=1) {
-		 				if(opponent != null && opponent.isHit == false){
+		 				if(opponent != null && opponent.canMove == true){
 
 							if(player.projectiles[key].x - Projectile.SIZE < opponent.x + Player.WIDTH &&
          						player.projectiles[key].x + Projectile.SIZE > opponent.x &&
-         						player.projectiles[key].y - Projectile.SIZE < opponent.y + Player.HEIGHT &&
-         						player.projectiles[key].y + Projectile.SIZE > opponent.y)
+         						player.projectiles[key].distance - Projectile.SIZE < opponent.distance + Player.HEIGHT &&
+         						player.projectiles[key].distance + Projectile.SIZE > opponent.distance)
 		 					{
 		 						console.log("Hit");
 		 						opponent.isHit = true;
+		 						opponent.canMove = false;
 		 						player.projectiles.splice(key,1);
 		 						sendToServer({type:"hit", projkey: key});
-		 						setTimeout(function(){opponent.isHit=false;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+		 						setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 		 					}
 		 				}
 		        }
@@ -545,7 +585,9 @@ function Client(){
 			playerIsJumping: player.isJumping,
 			playerDistance: player.distance,
 			playerJumpSpeed: player.jumpSpeed,
-			playerFallSpeed: player.fallSpeed});
+			playerFallSpeed: player.fallSpeed,
+			playerCanMove: player.canMove,
+			playerFinish: player.finish});
 	}
 
 	var updatePlayerDirection = function(){
@@ -609,7 +651,9 @@ function Client(){
 				case 3:
 					if(player.y + Player.HEIGHT < platform.y){
 						player.finish = true;
+						player.canMove = false;
 						player.y = platform.y-Player.HEIGHT;
+						updatePlayerVariables();
 					}
 					break;
 				default:
@@ -633,7 +677,10 @@ function Client(){
 
 					if(opponent.distance - Player.HEIGHT > platform.gameY){
 						opponent.finish = true;
-						opponent.y = platform.y-Player.HEIGHT;
+						opponent.canMove = false;
+						var diff = opponent.yForOpp - opponent.y;
+						opponent.yForOpp = platform.y-Player.HEIGHT;
+						opponent.y = opponent.yForOpp-diff;
 					}
 
 					break;

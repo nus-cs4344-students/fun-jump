@@ -23,6 +23,7 @@ function Player(id) {
 	that.die = false;
 	that.image = new Image();
 	that.id = id;
+	that.canMove = true;
 
 	that.vx = 0;
 
@@ -47,7 +48,7 @@ function Player(id) {
 	}
 
 	that.move = function(direction){
-		if(that.isHit == false && (direction == 'left' || direction == 'right' || direction == 'stop')){
+		if(that.canMove == true && (direction == 'left' || direction == 'right' || direction == 'stop')){
 			if(that.x < 0){
 				that.vx = 0;
 				that.x = 0;
