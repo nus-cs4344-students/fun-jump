@@ -209,7 +209,7 @@ function Client(){
 		//Player shoots by clicking on the canvas
 		playArea.addEventListener('mousedown', function(e) {
 		    mouse.down = true;
-		    fireBullet();
+		    fireBullet(mouse.x,mouse.y);
 		});
 		playArea.addEventListener('mouseup', function(e) {
 		    mouse.down = false;
@@ -220,6 +220,32 @@ function Client(){
 		    mouse.x = e.clientX - rect.left;
 		    mouse.y = e.clientY - rect.top;
 		});
+
+		// listen for touches
+		// Player shoots by touching the canvas
+		playArea.addEventListener('touchstart', function(e) {
+		    e.preventDefault();
+		    // the event object has an array
+		    // named touches; we just want
+		    // the first touch
+		    var touch = e.touches[0];
+		    //Find the coordinate of touch wrt the canvas
+		    var rect = playArea.getBoundingClientRect();
+		    var touchX = touch.clientX - rect.left;
+		    var touchY = touch.clientY - rect.top;
+		    fireBullet(touchX,touchY);
+		}, false);
+		playArea.addEventListener('touchmove', function(e) {
+		    // Not interested in this,
+		    // but prevent default behaviour
+		    // so the screen doesn't scroll
+		    // or zoom
+		    e.preventDefault();
+		}, false);
+		playArea.addEventListener('touchend', function(e) {
+		    // as above
+		    e.preventDefault();
+		}, false);
 	}
 
     this.start = function() {
@@ -558,13 +584,13 @@ function Client(){
 
 	}
 
-	var fireBullet = function(){
+	var fireBullet = function(endX, endY){
 
 		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
-	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, mouse.x, mouse.y, player.distance-Player.HEIGHT/2),
+	                new Trajectory(player.x + Player.WIDTH / 2, player.y + Player.HEIGHT / 2, endX, endY, player.distance-Player.HEIGHT/2),
 	                Projectile.SIZE,
 	                Projectile.COLOR,
 	                Projectile.SPEED,
