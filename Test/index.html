@@ -12,9 +12,9 @@
 		<script type="text/javascript" src="./sockjs-0.3.min.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function(){
-				$("#menuScreen").height(FunJump.HEIGHT);
-				$("#menuScreen").width(FunJump.WIDTH);
-				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
+				$("#manuScreen").height(FunJump.HEIGHT);
+				$("#manuScreen").width(FunJump.WIDTH);
+				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
 				$("#gameImage").height(200);
 				$("#gameImage").width(FunJump.WIDTH);
 				// $("#footer").css("margin-top",FunJump.WIDTH-$("#footer").height()-20);
@@ -85,14 +85,14 @@
 
 			$(window).resize(function(){
 				//Always position at center.
-				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
+				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
 			})
 
 		</script>
 		
 	</head>
 	<body>
-		<section id="menuScreen" data-role="page" data-theme="a">
+		<section id="manuScreen" data-role="page" data-theme="a">
 			<header data-role="header"> 
                <h1>Fun Jump</h1> 
          	</header> 
