@@ -116,10 +116,11 @@ function Server(PORT) {
 						httpReq.request({
 									host: FunJump.SERVER_NAME,
 									port: FunJump.PORT,
-									path: "/removeuser/"+PORT
+									path: "/removeuser/"+PORT,
+									method: "GET"
 								},
 									function(res){}).end();
-						});
+						
 					});
 
 					conn.on('data', function (data) {
