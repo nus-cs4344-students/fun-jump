@@ -112,6 +112,14 @@ function Server(PORT) {
 						var message = {type:"playerDC", pid:playerID};
 						broadcastToRest(message,playerID);
 						numOfPlayers--;
+						var httpReq = require("http");
+						httpReq.request({
+									host: FunJump.SERVER_NAME,
+									port: FunJump.PORT,
+									path: "/removeuser/"+PORT
+								},
+									function(res){}).end();
+						});
 					});
 
 					conn.on('data', function (data) {
