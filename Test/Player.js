@@ -24,7 +24,9 @@ function Player(id) {
 	that.image = new Image();
 	that.id = id;
 	that.canMove = true;
-
+	that.stepMove = 0;	//Check how many left / right it has moved
+	that.dirMove;	//Check whether its left / right it has moved.
+	
 	that.vx = 0;
 
 	that.isFalling = true;
@@ -59,12 +61,20 @@ function Player(id) {
 			}
 			else{
 				if(direction == 'left'){
-					that.vx = that.vx - Player.XACCELERATION;
-					that.direction = "left";
+					if(!(that.x <=0)){
+						that.dirMove = "left";
+						that.vx = that.vx - Player.XACCELERATION;
+						that.direction = "left";
+						that.stepMove ++;
+					}
 				}
 				else if(direction == 'right'){
-					that.vx = that.vx + Player.XACCELERATION;
-					that.direction = "right";
+					if(!(that.x+Player.WIDTH >=FunJump.WIDTH)){
+						that.dirMove = "right";
+						that.vx = that.vx + Player.XACCELERATION;
+						that.direction = "right";
+						that.stepMove ++;
+					}
 				}
 				else if(direction == 'stop'){
 					if(that.vx > Player.XACCELERATION)
@@ -74,6 +84,7 @@ function Player(id) {
 					else
 						that.vx = 0;
 					that.direction = "stop";
+					//	that.stepMove = 0;	//Moved to client side.
 				}
 				that.x = that.x+that.vx;
 			}
