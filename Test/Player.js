@@ -13,6 +13,7 @@ function Player(id) {
 	that.directionUpdates = 0;
 	that.type;
 
+	that.powerups = [];
 	that.platforms = [];
 	that.projectiles = [];
 	that.projectileTimer = 0;
@@ -37,16 +38,15 @@ function Player(id) {
 
 	that.screenMove = false;
 
+	that.powerup = false;	//Shield Powerup
+	
 	that.setPosition = function(x,y){
 		that.x = x;
 		that.y = y;
-		//var xx = (FunJump.HEIGHT - (that.y+Player.HEIGHT));
-		//console.log(xx);
 	}
 
 	that.setRelY = function(){	//Sets the bottom of the map based on the relative y postion
 		that.yRel = that.distance - (FunJump.HEIGHT - that.y);
-		//console.log(that.distance);
 	}
 
 	that.move = function(direction){
@@ -84,7 +84,6 @@ function Player(id) {
 					else
 						that.vx = 0;
 					that.direction = "stop";
-					//	that.stepMove = 0;	//Moved to client side.
 				}
 				that.x = that.x+that.vx;
 			}
@@ -111,12 +110,17 @@ function Player(id) {
 			that.screenMove = true;
 			that.start = false;
 			if(that.type=="player"){
-				platforms.forEach(function(platform,ind){
+				that.platforms.forEach(function(platform,ind){
 					platform.y += that.jumpSpeed;	//Move the platform accordingly.
 				});
 
 				that.projectiles.forEach(function(projectile,ind){
 					projectile.y += that.jumpSpeed;
+				});
+				
+				//Don't need to do 'taken' cause i can juz render it out.
+				that.powerups.forEach(function(powerup,ind){
+					powerup.y += that.jumpSpeed;	//Move the powerup accordingly.
 				});
 			}
 		}
@@ -161,4 +165,6 @@ Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
 Player.SHOOTDELAY = 1000;
 Player.FREEZE = 100;
+Player.POWERUPDIST = 1;	//1 pixels away from player
+Player.POWERUPSIZE = Player.HEIGHT + Player.POWERUPDIST * 2;
 global.Player = Player;

@@ -20,7 +20,8 @@
 	  this.splash = new Image();
 	  this.finishline = new Image();
 	  this.progress = new Image();
-
+	  this.shield = new Image();
+	  
 	  this.allImgLoaded = false;
 
 	  var that = this;
@@ -78,6 +79,10 @@
 	  this.progress.onload = function() {
 	    imageLoaded();
 	  }
+	  
+	  this.shield.onload = function(){
+		imageLoaded();
+	  }
 
 	  var imagePath = "./libs/img/";
 	  // Set images src
@@ -95,6 +100,7 @@
 	  this.splash.src = imagePath + "splash" +".png";
 	  this.finishline.src = imagePath + "finish line" +".png";
 	  this.progress.src = imagePath + "progress bar" +".png";
+	  this.shield.src = imagePath + "shield" + ".png";
 	}
 ImageRepository.NORMAL_HEIGHTDIFF = 10;
 ImageRepository.PROGRESS_HEIGHT = 420;
