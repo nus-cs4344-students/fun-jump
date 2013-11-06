@@ -139,15 +139,26 @@ function Client(){
 
 					break;
 
+				case "removeshield":
+					if(player.id == message.pid)
+						player.powerup = false;
+					else
+						opponentArr[message.pid].powerup = false;
+					break;
 				case "hit":
 					//sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
+					
 					//Player is the one that gets hit
 					if(player.id == message.shootedID){
-						player.isHit = true;
-						player.canMove = false;
+						if(player.powerup == true)	//Remove his powerup!
+							player.powerup = false;
+						else{
+							player.isHit = true;
+							player.canMove = false;
 
-						opponentArr[message.shooterID].projectiles.splice(message.projkey,1);
-						setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+							opponentArr[message.shooterID].projectiles.splice(message.projkey,1);
+							setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+						}
 					}
 					else{//someone else gets hit
 						opponentArr[message.shootedID].isHit = true;
@@ -588,14 +599,28 @@ function Client(){
 			checkPowerupCollisionForPlayer();
 
 			if(player.start == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
-				player.canMove = false;
-				player.vx = 0;
-				setTimeout(function(){
-					getNearestPlatform(player);
-					updatePlayerVariables();
-					playerStopped = true;
-					stopPlayer(true);
-				}, 2000);
+				if(player.powerup == true){
+					player.powerup = false;
+					sendToServer({type:"removeshield", pid: player.id});
+					player.canMove = false;
+					player.vx = 0;
+					setTimeout(function(){
+						getNearestPlatform(player);
+						updatePlayerVariables();
+						playerStopped = true;
+						stopPlayer(true);
+					},500);	//difference is 500miliseconds
+				}
+				else{
+					player.canMove = false;
+					player.vx = 0;
+					setTimeout(function(){
+						getNearestPlatform(player);
+						updatePlayerVariables();
+						playerStopped = true;
+						stopPlayer(true);
+					}, 2000);
+				}
 			}
 		}
 
@@ -686,12 +711,18 @@ function Client(){
          						player.projectiles[key].distance + Projectile.SIZE > opponent.distance - Player.HEIGHT &&
          						player.projectiles[key].distance - Projectile.SIZE < opponent.distance)
 		 					{
+								player.projectiles.splice(key,1);
 		 						console.log("Hit");
-		 						opponent.isHit = true;
-		 						opponent.canMove = false;
-		 						player.projectiles.splice(key,1);
-		 						sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});	//@Kathy what should be pid?
-		 						setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+								if(opponent.powerup == true){
+									opponent.powerup = false;
+									sendToServer({type:"removeshield", pid: opponent.id});
+								}
+								else{
+									opponent.isHit = true;
+									opponent.canMove = false;
+									sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
+									setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+								}
 		 					}
 					}
 		        }

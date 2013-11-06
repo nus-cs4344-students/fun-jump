@@ -162,10 +162,13 @@ function Server(PORT) {
 								//TODO: SERVER DECICISION ON WHO SHOULD GET SHIELD
 								if(powerups[message.powerupid].taken == false){
 									powerups[message.powerupid].taken = true;
-									broadcast(message);
+									broadcast(message);	//broadcast to all!
 								}
 								else{	//ignore.
 								}
+								break;
+							case "removeshield":
+								broadcast(message);
 								break;
 							default:
 								console.log("Unhandled " + message.type);
