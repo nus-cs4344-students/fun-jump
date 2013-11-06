@@ -13,13 +13,14 @@ function Client(){
 	var opponentArr;
 	var playerStopped = true;
 	var connected = false;
+	var moveCount = 0;
 
 	//For global objects
 	var debugTxt;
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
 	var noOfPlayers = 0;
-
+	
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -93,7 +94,14 @@ function Client(){
 
 				case "updateOpponentDirection":
 					opponentArr[message.pid].directionUpdates++;
-					renderOpponentMovement(message.playerDirection,opponentArr[message.pid].directionUpdates,message.pid);
+					
+					//The client on the other side has rendered wrongly. Need to do convergence to fix it. [ONLY X AXIS]
+					if(message.playerDirection == "stop" && message.playerStepMove!=opponentArr[message.pid].stepMove){
+						convergeOpponentMovement(message.playerDirection, opponentArr[message.pid].directionUpdates,message.pid,message.playerStepMove,message.playerDirMove);
+					}
+					else{
+						renderOpponentMovement(message.playerDirection,opponentArr[message.pid].directionUpdates,message.pid);
+					}
 					break;
 
 				case "fire":
@@ -163,15 +171,48 @@ function Client(){
 
 	//This function is needed to reduce the number of updates by the client for movement!
 	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
-	//TO FIX: Constant left / right movement at wall.
 	var renderOpponentMovement = function(direction,noOfUpdates,oid){
 		if(noOfUpdates == opponentArr[oid].directionUpdates && opponentArr[oid].canMove == true){
 			opponentArr[oid].move(direction);
+			if(direction == "stop"){
+				opponentArr[oid].stepMove = 0;
+			}
 			if(!(direction == "stop" && opponentArr[oid].vx == 0))
 				setTimeout(function(){renderOpponentMovement(direction,noOfUpdates,oid);}, 1000/FunJump.FRAME_RATE);	//Similar to game looping
 		}
 	}
 
+	//If the client rendered the opponent to have moved more or less than the actual movement, it will do IMMEDIATE adjustments.
+	var convergeOpponentMovement = function(direction,noOfUpdates,oid,stepMove,dirMove){
+		var difference = Math.abs(stepMove - opponentArr[oid].stepMove);
+		if(opponentArr[oid].stepMove > stepMove){	//If the opponent rendered moved more than required, we have to push him back.
+			if(dirMove == "right"){	//Move him to the left.
+				for(var i = 0; i < difference; i ++){
+					opponentArr[oid].x = opponentArr[oid].x - (stepMove + i);
+				}
+			}
+			else if(dirMove == "left"){
+				for(var i = 0; i < difference; i ++){
+					opponentArr[oid].x = opponentArr[oid].x + (stepMove + i);
+				}
+			}
+		}
+		
+		else if(opponentArr[oid].stepMove < stepMove){
+			if(dirMove == "right"){	//Move him to the right.
+				for(var i = 0; i < difference; i ++){
+					opponentArr[oid].x = opponentArr[oid].x + (stepMove + i);
+				}
+			}
+			else if(dirMove == "left"){
+				for(var i = 0; i < difference; i ++){
+					opponentArr[oid].x = opponentArr[oid].x - (stepMove + i);
+				}
+			}
+		}
+		renderOpponentMovement(direction,noOfUpdates,oid);
+	}
+	
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
@@ -468,18 +509,7 @@ function Client(){
 		}
 
 		else{	//It is within the range, so do simple convergence.
-			//CONVERGENCE OVER HERE
-			//Move to x position properly
-
-			//Move to y position properly
-
-			//Set falling / jumping
-			//opponent.isFalling = message.playerIsFalling;
-			//opponent.isJumping = message.playerIsJumping;
-
-			//Set Jump Speed
-			/*opponent.jumpSpeed = message.playerJumpSpeed;
-			opponent.fallSpeed = message.playerFallSpeed;*/
+			//Did convergence of X-axis at convergeOpponentMovement during player movement update.
 		}
 	}
 
@@ -678,8 +708,12 @@ function Client(){
 	}
 
 	var updatePlayerDirection = function(){
+		if(player.direction == "stop")
+			console.log("UPDATE DIRECTION " + player.direction + " " + player.dirMove + " " + player.stepMove);
 		sendToServer({type:"updatePlayerDirection",
 			playerDirection: player.direction,
+			playerStepMove: player.stepMove,
+			playerDirMove: player.dirMove,
 			pid:player.id});
 	}
 
@@ -693,7 +727,7 @@ function Client(){
 				updatePlayerDirection();
 			updateDirection = false;
 
-			setTimeout(function(){movePlayer(e);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
+			setTimeout(function(){movePlayer(e,updateDirection);}, 1000/FunJump.FRAME_RATE);	//move the player again after framerate
 		}
 	}
 
@@ -706,7 +740,8 @@ function Client(){
 				if(updateDirection == true)
 					updatePlayerDirection();
 				updateDirection = false;
-				setTimeout(stopPlayer, 1000/FunJump.FRAME_RATE);
+				player.stepMove = 0;
+				setTimeout(function(){stopPlayer(updateDirection);}, 1000/FunJump.FRAME_RATE);
 			}
 		}
 	}
