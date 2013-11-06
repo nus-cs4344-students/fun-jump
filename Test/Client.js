@@ -63,6 +63,12 @@ function Client(){
 				case "playerDC":	//Player has disconnected....
 					noOfPlayers --;
 					opponentArr[message.pid] = null;
+					console.log(player.start+"Player "+message.pid+" disconnected");
+					if(playerStopped){
+						$("#player"+message.pid+"_ready").text("Empty Slot");
+					}else{
+						$("#player"+message.pid+"_ready").text("Disconnected");	
+					}
 					break;
 
 				case "onConnect":	//Map also includes that the player has joined!
