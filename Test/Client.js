@@ -413,8 +413,8 @@ function Client(){
 	var drawPlayerIcon = function(context, player, progressx, progressy){
 
 		var difference = ImageRepository.PROGRESS_HEIGHT-ImageRepository.PROGRESS_LENGTH;
-		var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/((totalNoOfPlatforms+1)* platformDist))*ImageRepository.PROGRESS_LENGTH;
-
+		//var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/((totalNoOfPlatforms+1)* platformDist))*ImageRepository.PROGRESS_LENGTH;
+		var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/(platforms[totalNoOfPlatforms-1].gameY))*ImageRepository.PROGRESS_LENGTH;
 		positionY = Math.max(positionY, progressy+(difference/2));
 
 		switch(player.id){
@@ -812,6 +812,7 @@ function Client(){
 		}
 	}
 	
+	//Function to convert server platforms to client platform objects
 	var convertToPlatforms = function(p){
 		for(var i = 0; i < p.length; i++)
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
@@ -819,6 +820,7 @@ function Client(){
 		player.platforms = platforms;
 	}
 	
+	//Function to convert server powerups to client powerup objects
 	var convertToPowerups = function(p){
 		for(var i = 0; i < p.length; i++){
 			powerups[i] = new Powerup(p[i].x, p[i].y, p[i].id);
