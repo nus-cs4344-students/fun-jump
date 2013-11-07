@@ -11,13 +11,14 @@
 		<script type="text/javascript" src="./FunJump.js"></script>
 		<script type="text/javascript" src="./sockjs-0.3.min.js"></script>
 		<script type="text/javascript">
-			$(document).ready(function(){
+			$(document).on('pageinit', function(){
 				$("#manuScreen").height(FunJump.HEIGHT);
 				$("#manuScreen").width(FunJump.WIDTH);
 				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
 				$("#gameImage").height(200);
 				$("#gameImage").width(FunJump.WIDTH);
 				// $("#footer").css("margin-top",FunJump.WIDTH-$("#footer").height()-20);
+				$(".join_button").buttonMarkup({inline:true});
 
 
 				$(".join_button").click(function(){
