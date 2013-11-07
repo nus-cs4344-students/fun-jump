@@ -15,6 +15,14 @@ function Client(){
 	var connected = false;
 	var moveCount = 0;
 
+	//For platform / powerups
+	var totalNoOfPlatforms = 20;
+	var noOfPlatforms = 5;
+	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
+	var platforms = [];
+	var powerups = [];
+	
+	
 	//For global objects
 	var debugTxt;
 	var convMaxXThres = 50;
@@ -83,6 +91,7 @@ function Client(){
 					}
 
 					convertToPlatforms(message.content);
+					convertToPowerups(message.contentp);
 					render();
 					connected = true;
 					break;
@@ -130,15 +139,26 @@ function Client(){
 
 					break;
 
+				case "removeshield":
+					if(player.id == message.pid)
+						player.powerup = false;
+					else
+						opponentArr[message.pid].powerup = false;
+					break;
 				case "hit":
 					//sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
+					
 					//Player is the one that gets hit
 					if(player.id == message.shootedID){
-						player.isHit = true;
-						player.canMove = false;
+						if(player.powerup == true)	//Remove his powerup!
+							player.powerup = false;
+						else{
+							player.isHit = true;
+							player.canMove = false;
 
-						opponentArr[message.shooterID].projectiles.splice(message.projkey,1);
-						setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+							opponentArr[message.shooterID].projectiles.splice(message.projkey,1);
+							setTimeout(function(){player.isHit=false;player.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+						}
 					}
 					else{//someone else gets hit
 						opponentArr[message.shootedID].isHit = true;
@@ -163,7 +183,16 @@ function Client(){
 					// setTimeout(functon(){},timeToWait);
 					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
-
+					
+				case "powerup":
+					powerups[message.powerupid].taken = true;
+					if(message.pid == player.id){
+						player.powerup = true;	
+					}
+					else{
+						opponentArr[message.pid].powerup = true;
+					}
+					break;
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
@@ -317,7 +346,7 @@ function Client(){
 		// Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-
+		
 		if(player!=null){
 			drawProgressBar(context);
 		}
@@ -363,7 +392,7 @@ function Client(){
 		//draw player
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
 		drawPlatforms(context);
-
+		drawPowerups(context);
 
     }
 
@@ -384,8 +413,8 @@ function Client(){
 	var drawPlayerIcon = function(context, player, progressx, progressy){
 
 		var difference = ImageRepository.PROGRESS_HEIGHT-ImageRepository.PROGRESS_LENGTH;
-		var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/((totalNoOfPlatforms+1)* platformDist))*ImageRepository.PROGRESS_LENGTH;
-
+		//var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/((totalNoOfPlatforms+1)* platformDist))*ImageRepository.PROGRESS_LENGTH;
+		var positionY = progressy-5+ImageRepository.PROGRESS_LENGTH+(difference/2)-((player.distance-Player.HEIGHT)/(platforms[totalNoOfPlatforms-1].gameY))*ImageRepository.PROGRESS_LENGTH;
 		positionY = Math.max(positionY, progressy+(difference/2));
 
 		switch(player.id){
@@ -438,6 +467,8 @@ function Client(){
 					console.log("Invalid player id: "+ playerid);}
 				player.shoot = false;
 				break;
+				
+			//Only this condition will allow a player to have a shield
 			case false:
 				switch(playerid){
 				case 0:
@@ -454,9 +485,19 @@ function Client(){
 					break;
 				default:
 					console.log("Invalid player id: "+ playerid);}
+					break;
 
 		}
-
+		
+		if(player.powerup == true){
+			context.beginPath();	//FOR SHIELD
+			context.rect(playerx-Player.POWERUPDIST,playery-Player.POWERUPDIST,Player.POWERUPSIZE,Player.POWERUPSIZE);
+			context.closePath();
+			context.strokeStyle = "green";
+			context.lineWidth="4";
+			context.stroke();
+		}
+		
 		if(playerIsHit == true){
 			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
 		}
@@ -490,6 +531,7 @@ function Client(){
 			opponentArr[oID].canMove = message.playerCanMove;
 			opponentArr[oID].finish = true;
 		}
+		
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
 		else if( ((opponentArr[oID].x + convMaxXThres) < message.playerX )||
 			((opponentArr[oID].x - convMaxXThres) > message.playerX ) ||
@@ -554,16 +596,31 @@ function Client(){
 		if(player.canMove == true){
 			checkPlayerFall();
 			checkPlatformCollisionForPlayer();
+			checkPowerupCollisionForPlayer();
 
 			if(player.start == false && player.y >= FunJump.HEIGHT - Player.HEIGHT){
-				player.canMove = false;
-				player.vx = 0;
-				setTimeout(function(){
-					getNearestPlatform(player);
-					updatePlayerVariables();
-					playerStopped = true;
-					stopPlayer(true);
-				}, 2000);
+				if(player.powerup == true){
+					player.powerup = false;
+					sendToServer({type:"removeshield", pid: player.id});
+					player.canMove = false;
+					player.vx = 0;
+					setTimeout(function(){
+						getNearestPlatform(player);
+						updatePlayerVariables();
+						playerStopped = true;
+						stopPlayer(true);
+					},500);	//difference is 500miliseconds
+				}
+				else{
+					player.canMove = false;
+					player.vx = 0;
+					setTimeout(function(){
+						getNearestPlatform(player);
+						updatePlayerVariables();
+						playerStopped = true;
+						stopPlayer(true);
+					}, 2000);
+				}
 			}
 		}
 
@@ -649,18 +706,23 @@ function Client(){
 		    for (var key in player.projectiles) {
 		        if (player.projectiles[key] != undefined && player.projectiles[key].landedTimer<=1) {
 		 				if(opponent != null && opponent.canMove == true){
-
 							if(player.projectiles[key].x - Projectile.SIZE < opponent.x + Player.WIDTH &&
          						player.projectiles[key].x + Projectile.SIZE > opponent.x &&
          						player.projectiles[key].distance + Projectile.SIZE > opponent.distance - Player.HEIGHT &&
          						player.projectiles[key].distance - Projectile.SIZE < opponent.distance)
 		 					{
+								player.projectiles.splice(key,1);
 		 						console.log("Hit");
-		 						opponent.isHit = true;
-		 						opponent.canMove = false;
-		 						player.projectiles.splice(key,1);
-		 						sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});	//@Kathy what should be pid?
-		 						setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+								if(opponent.powerup == true){
+									opponent.powerup = false;
+									sendToServer({type:"removeshield", pid: opponent.id});
+								}
+								else{
+									opponent.isHit = true;
+									opponent.canMove = false;
+									sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
+									setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
+								}
 		 					}
 					}
 		        }
@@ -683,7 +745,7 @@ function Client(){
 
 	var checkPlayerFall = function(){
 		if (player.isJumping){
-			player.checkJump(platforms);
+			player.checkJump();
 			jumping ++;
 			falling = 0;
 		}
@@ -714,8 +776,6 @@ function Client(){
 	}
 
 	var updatePlayerDirection = function(){
-		if(player.direction == "stop")
-			console.log("UPDATE DIRECTION " + player.direction + " " + player.dirMove + " " + player.stepMove);
 		sendToServer({type:"updatePlayerDirection",
 			playerDirection: player.direction,
 			playerStepMove: player.stepMove,
@@ -751,16 +811,21 @@ function Client(){
 			}
 		}
 	}
-
-	var totalNoOfPlatforms = 20;
-	var noOfPlatforms = 5;
-	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
-	var platforms = [];
-
+	
+	//Function to convert server platforms to client platform objects
 	var convertToPlatforms = function(p){
 		for(var i = 0; i < p.length; i++)
 			platforms[i] = new Platform(p[i].x, p[i].y, p[i].type);
+		totalNoOfPlatforms = p.length;
 		player.platforms = platforms;
+	}
+	
+	//Function to convert server powerups to client powerup objects
+	var convertToPowerups = function(p){
+		for(var i = 0; i < p.length; i++){
+			powerups[i] = new Powerup(p[i].x, p[i].y, p[i].id);
+		}
+		player.powerups = powerups;
 	}
 
 	var drawPlatforms = function(context){
@@ -774,6 +839,13 @@ function Client(){
 		});
 	}
 
+	var drawPowerups = function(context){
+		for(var i = 0; i < powerups.length; i ++){
+			if(powerups[i].taken == false)
+				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y);
+		}
+	}
+	
 	var checkPlatformCollisionForPlayer = function(){
 		platforms.forEach(function(platform, no){
 			//Client will render player position when platform collision happens based on requirements
@@ -799,6 +871,35 @@ function Client(){
 		});
 	}
 
+	var checkPowerupCollisionForPlayer = function(){
+		if(player.powerup == false){
+			powerups.forEach(function(powerup,no){
+				if(powerup.taken == false){
+					if(
+					((player.x < powerup.x) && (player.x + Player.WIDTH > powerup.x) &&
+					(player.y < powerup.y) && (player.y + Player.HEIGHT > powerup.y))
+					
+					||
+					
+					((player.x < powerup.x) && (player.x + Player.WIDTH > powerup.x) &&
+					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))
+					
+					||
+					
+					((player.x > powerup.x) && (player.x < powerup.x + Powerup.WIDTH) &&
+					(player.y < powerup.y) && (player.y + Player.HEIGHT > powerup.y))
+					
+					||
+					((player.x > powerup.x) && (player.x < powerup.x + Powerup.WIDTH) &&
+					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))){
+						powerup.taken = true;
+						sendToServer({type:"powerup", powerupid: powerup.id, pid:player.id});
+					}
+				}
+			});
+		}
+	}
+	
 	var checkCollisionForOpponent = function(opponent){
 		platforms.forEach(function(platform, no){
 			//Client will render opponent collision

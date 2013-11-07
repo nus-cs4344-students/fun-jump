@@ -2,17 +2,18 @@
 
 var LIB_PATH = "./";
 require(LIB_PATH + "FunJump.js");
+require(LIB_PATH + "Powerup.js");
 require(LIB_PATH + "Platform.js");
-
 
 function Server(PORT) {
     var port;         // Game port
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
 	var totalNoOfPlatforms = 20;
-	var noOfPlatforms = 5;
+	var noOfPlatforms = 6;
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
+	var powerups = [];
 	var maxNoOfPlayers = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
 
 	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
@@ -68,6 +69,7 @@ function Server(PORT) {
             gameInterval = undefined;
             sockets = new Object;
             generatePlatforms();	//Generate the platforms for all players.
+			generatePowerups();	//Generates powerup for all players.
 			gameStarted = false;
 			//---------------------------------------------//
 
@@ -94,7 +96,7 @@ function Server(PORT) {
 
 
 					//Server sends the map and the new players id to him
-					unicast(sockets[playerID], {type:"onConnect", content:platforms, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS});
+					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS});
 					connectedPlayers[playerID] = true;
 
 					//Server sends to everyone else that a new player has joined, together with his playerID
@@ -148,12 +150,25 @@ function Server(PORT) {
 							case "projGone":
 								broadcastToRest(message,playerID);
 								break;
+								
 							case "ready":
 								ready = ready | (1<<message.pid);
 								broadcastToRest(message, message.pid);
 								if (numOfPlayers > 1 && ready == Math.pow(2, numOfPlayers)-1){
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
 								}
+								break;
+							case "powerup":
+								//TODO: SERVER DECICISION ON WHO SHOULD GET SHIELD
+								if(powerups[message.powerupid].taken == false){
+									powerups[message.powerupid].taken = true;
+									broadcast(message);	//broadcast to all!
+								}
+								else{	//ignore.
+								}
+								break;
+							case "removeshield":
+								broadcast(message);
 								break;
 							default:
 								console.log("Unhandled " + message.type);
@@ -179,14 +194,40 @@ function Server(PORT) {
 
 	var generatePlatforms = function(){
 		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
+		
 		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
+		
 		for (var i = 0; i < totalNoOfPlatforms; i++) {
 			type = Math.floor(Math.random()*5);	//1:5 ratio for special:normal
-			if (type == 0) type = 1;
-			else type = 0;
-			platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
-			//random X position
-			position = position - platformDist;
+			if (type == 0){	//Special Platform Generated.
+				type = 1;
+				platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
+				
+				//Now we generate a normal platform near this platform.
+				var incorrectlyGenerated = true;
+				while(incorrectlyGenerated){
+					var x = Math.random()*(FunJump.WIDTH-Platform.WIDTH);
+					if((x < platforms[i].x && ((x + Platform.WIDTH) > platforms[i].x)) || (x > platforms[i].x && (x < (platforms[i].x + Platform.WIDTH)))){
+						incorrectlyGenerated = true;	//Continue till we generate a NON OVERLAPPING platform
+					}
+					else{
+						totalNoOfPlatforms ++;
+						i++;
+						incorrectlyGenerated = false;
+						platforms[i] = new Platform(x,position,0);
+					}
+				}
+				
+				//New Y position
+				position = position - platformDist;				
+			}
+			else{
+				type = 0;
+				platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
+				
+				//New Y position
+				position = position - platformDist;
+			}
 		}
 
 		//The last platform is actually the finish line
@@ -194,8 +235,23 @@ function Server(PORT) {
 		platforms[totalNoOfPlatforms] = new Platform(0,position,type);
 		position = position - platformDist;
 	};
-
+	
+	var generatePowerups = function(){
+		var powerupID = 0;
+		for (var i = 0; i < totalNoOfPlatforms; i++) {	//No of powerups depends on the number of platforms.
+			var chance = Math.floor(Math.random()*Powerup.CHANCE);
+			if(chance == 1){
+				powerups[powerupID] = new Powerup(
+						(platforms[i].x + Platform.WIDTH / 2 - (Powerup.WIDTH / 4)),
+						(platforms[i].y - Powerup.HEIGHT - 5),
+						powerupID);
+				powerupID ++;
+			}
+		}
+	};
 }
+
+
 // var gameServer = new Server();
 // gameServer.start();
 // console.log("SERVER LOADED");
