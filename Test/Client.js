@@ -29,6 +29,9 @@ function Client(){
 	var	convMaxYThres = 50;
 	var noOfPlayers = 0;
 
+	//Sound
+	var fireSound = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
+
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -686,7 +689,8 @@ function Client(){
 	}
 
 	var fireBullet = function(endX, endY){
-
+		//Play sound:
+			fireSound.play();
 		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
@@ -703,6 +707,8 @@ function Client(){
 
 	        player.projectileTimer = Date.now();
 	        player.shoot = true;
+
+	        
 
 	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer, pid: player.id});
     	}
