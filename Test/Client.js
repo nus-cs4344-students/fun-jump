@@ -86,7 +86,11 @@ function Client(){
 							opponentArr[i] = new Player(i);
 							opponentArr[i].type = "opponent";
 							noOfPlayers++;
-							$("#player"+i+"_ready").text("Not Ready");
+							if((message.ready & (1<<i)) == 1){
+								$("#player"+i+"_ready").text("Ready");	
+							}else{
+								$("#player"+i+"_ready").text("Not Ready");	
+							}
 						}
 					}
 

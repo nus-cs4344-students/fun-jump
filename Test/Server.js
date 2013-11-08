@@ -60,6 +60,8 @@ function Server(PORT) {
             var http = require('http');
             var sockjs = require('sockjs');
             var sock = sockjs.createServer();
+            var app = express();
+            var httpServer = http.createServer(app);
 
             //----------------INITIALIZING-----------------//
 			for(var i = 0; i < connectedPlayers.length; i++){
@@ -96,7 +98,7 @@ function Server(PORT) {
 
 
 					//Server sends the map and the new players id to him
-					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS});
+					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS, ready:ready});
 					connectedPlayers[playerID] = true;
 
 					//Server sends to everyone else that a new player has joined, together with his playerID
@@ -114,6 +116,13 @@ function Server(PORT) {
 						var message = {type:"playerDC", pid:playerID};
 						broadcastToRest(message,playerID);
 						numOfPlayers--;
+						console.log("NumberOfPlayers: "+numOfPlayers);
+						// if (numOfPlayers < 1){
+						// 	// sock.destroy();
+						// 	httpServer.close(function(){
+						// 		console.log("Closed server at port: "+PORT);
+						// 	});
+						// }
 						var httpReq = require("http");
 						httpReq.request({
 									host: FunJump.SERVER_NAME,
@@ -179,13 +188,11 @@ function Server(PORT) {
 
             // Standard code to starts the Pong server and listen
             // for connection
-            var app = express();
-            var httpServer = http.createServer(app);
             sock.installHandlers(httpServer, {prefix:'/FunJump'});
             httpServer.listen(PORT, '0.0.0.0');
             app.use(express.static(__dirname));
 
-
+            console.log("Started listen to: "+PORT);
         } catch (e) {
             console.log("Cannot listen to " + port);
             console.log("Error: " + e);

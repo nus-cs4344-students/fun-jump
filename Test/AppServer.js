@@ -35,7 +35,7 @@ try{
 	sock.on('connection', function(conn){
 		connections.push(conn);
 		//send to new connections
-		console.log("New player connected in sockjs");
+		console.log("New player connected in AppServer");
 		conn.write(JSON.stringify(players));
 	});
 
@@ -63,7 +63,7 @@ app.get("/join/:rmID", function(req, res){
 			});
 	broadcast(players);
 
-})
+});
 
 /*
 	report number of players per room.
@@ -78,9 +78,9 @@ app.get("/removeuser/:rmPort", function(req, res){
 		}
 	}
 	players[roomID]--;
-	if (players[roomID]==0){
-		delete gameServers[roomID];
-	}
+	// if (players[roomID]==0){
+	// 	gameServers[roomID] = null;
+	// }
 	broadcast(players);
 });
 
