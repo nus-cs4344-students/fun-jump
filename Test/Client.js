@@ -21,14 +21,14 @@ function Client(){
 	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms = [];
 	var powerups = [];
-	
-	
+
+
 	//For global objects
 	var debugTxt;
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
 	var noOfPlayers = 0;
-	
+
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -67,7 +67,7 @@ function Client(){
 					if(playerStopped){
 						$("#player"+message.pid+"_ready").text("Empty Slot");
 					}else{
-						$("#player"+message.pid+"_ready").text("Disconnected");	
+						$("#player"+message.pid+"_ready").text("Disconnected");
 					}
 					break;
 
@@ -113,7 +113,7 @@ function Client(){
 
 				case "updateOpponentDirection":
 					opponentArr[message.pid].directionUpdates++;
-					
+
 					//The client on the other side has rendered wrongly. Need to do convergence to fix it. [ONLY X AXIS]
 					if(message.playerDirection == "stop" && message.playerStepMove!=opponentArr[message.pid].stepMove){
 						convergeOpponentMovement(message.playerDirection, opponentArr[message.pid].directionUpdates,message.pid,message.playerStepMove,message.playerDirMove);
@@ -137,9 +137,13 @@ function Client(){
 					break;
 
 				case "projGone":
-					//sendToServer({type:"projGone", projkey: key});
-
-					opponentArr[message.pid].projectiles[message.projkey].canRemove = true;
+					//sendToServer({type:"projGone", projkey: key, hitShield: false});
+					if(message.hitShield == false){
+						opponentArr[message.pid].projectiles[message.projkey].canRemove = true;
+					}
+					else{//the bullet hits the shield
+						opponentArr[message.pid].projectiles.splice(message.projkey,1); //remove immediately
+					}
 
 					break;
 
@@ -151,7 +155,7 @@ function Client(){
 					break;
 				case "hit":
 					//sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
-					
+
 					//Player is the one that gets hit
 					if(player.id == message.shootedID){
 						if(player.powerup == true)	//Remove his powerup!
@@ -187,11 +191,11 @@ function Client(){
 					// setTimeout(functon(){},timeToWait);
 					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
-					
+
 				case "powerup":
 					powerups[message.powerupid].taken = true;
 					if(message.pid == player.id){
-						player.powerup = true;	
+						player.powerup = true;
 					}
 					else{
 						opponentArr[message.pid].powerup = true;
@@ -236,7 +240,7 @@ function Client(){
 				}
 			}
 		}
-		
+
 		else if(opponentArr[oid].stepMove < stepMove){
 			if(dirMove == "right"){	//Move him to the right.
 				for(var i = 0; i < difference; i ++){
@@ -251,7 +255,7 @@ function Client(){
 		}
 		renderOpponentMovement(direction,noOfUpdates,oid);
 	}
-	
+
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
@@ -350,7 +354,7 @@ function Client(){
 		// Clears the playArea
         context.clearRect(0, 0, playArea.width, playArea.height);
    		context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
-		
+
 		if(player!=null){
 			drawProgressBar(context);
 		}
@@ -471,7 +475,7 @@ function Client(){
 					console.log("Invalid player id: "+ playerid);}
 				player.shoot = false;
 				break;
-				
+
 			//Only this condition will allow a player to have a shield
 			case false:
 				switch(playerid){
@@ -492,7 +496,7 @@ function Client(){
 					break;
 
 		}
-		
+
 		if(player.powerup == true){
 			context.beginPath();	//FOR SHIELD
 			context.rect(playerx-Player.POWERUPDIST,playery-Player.POWERUPDIST,Player.POWERUPSIZE,Player.POWERUPSIZE);
@@ -501,7 +505,7 @@ function Client(){
 			context.lineWidth="4";
 			context.stroke();
 		}
-		
+
 		if(playerIsHit == true){
 			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
 		}
@@ -535,7 +539,7 @@ function Client(){
 			opponentArr[oID].canMove = message.playerCanMove;
 			opponentArr[oID].finish = true;
 		}
-		
+
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
 		else if( ((opponentArr[oID].x + convMaxXThres) < message.playerX )||
 			((opponentArr[oID].x - convMaxXThres) > message.playerX ) ||
@@ -575,7 +579,7 @@ function Client(){
 	        if (player.projectiles[key].landedTimer >= 8)
 	        {
 	            player.projectiles.splice(key, 1);
-	            sendToServer({type:"projGone", projkey: key, pid:player.id});
+	            sendToServer({type:"projGone", projkey: key, pid:player.id, hitShield: false});
 	        }
 	    }
 
@@ -715,15 +719,22 @@ function Client(){
          						player.projectiles[key].distance + Projectile.SIZE > opponent.distance - Player.HEIGHT &&
          						player.projectiles[key].distance - Projectile.SIZE < opponent.distance)
 		 					{
-								player.projectiles.splice(key,1);
+
 		 						console.log("Hit");
 								if(opponent.powerup == true){
 									opponent.powerup = false;
 									sendToServer({type:"removeshield", pid: opponent.id});
+
+									player.projectiles.splice(key,1);
+									//need to inform other opponent to remove the projectile
+									//or else it would be at where the click is forever
+									sendToServer({type:"projGone", projkey: key, pid:player.id, hitShield: true});
+
 								}
 								else{
 									opponent.isHit = true;
 									opponent.canMove = false;
+									player.projectiles.splice(key,1);
 									sendToServer({type:"hit", projkey: key, shooterID: player.id, shootedID: opponent.id});
 									setTimeout(function(){opponent.isHit=false;opponent.canMove = true;},Player.FREEZE*1000/FunJump.FRAME_RATE);
 								}
@@ -815,7 +826,7 @@ function Client(){
 			}
 		}
 	}
-	
+
 	//Function to convert server platforms to client platform objects
 	var convertToPlatforms = function(p){
 		for(var i = 0; i < p.length; i++)
@@ -823,7 +834,7 @@ function Client(){
 		totalNoOfPlatforms = p.length;
 		player.platforms = platforms;
 	}
-	
+
 	//Function to convert server powerups to client powerup objects
 	var convertToPowerups = function(p){
 		for(var i = 0; i < p.length; i++){
@@ -849,7 +860,7 @@ function Client(){
 				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y);
 		}
 	}
-	
+
 	var checkPlatformCollisionForPlayer = function(){
 		platforms.forEach(function(platform, no){
 			//Client will render player position when platform collision happens based on requirements
@@ -882,17 +893,17 @@ function Client(){
 					if(
 					((player.x < powerup.x) && (player.x + Player.WIDTH > powerup.x) &&
 					(player.y < powerup.y) && (player.y + Player.HEIGHT > powerup.y))
-					
+
 					||
-					
+
 					((player.x < powerup.x) && (player.x + Player.WIDTH > powerup.x) &&
 					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))
-					
+
 					||
-					
+
 					((player.x > powerup.x) && (player.x < powerup.x + Powerup.WIDTH) &&
 					(player.y < powerup.y) && (player.y + Player.HEIGHT > powerup.y))
-					
+
 					||
 					((player.x > powerup.x) && (player.x < powerup.x + Powerup.WIDTH) &&
 					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))){
@@ -903,7 +914,7 @@ function Client(){
 			});
 		}
 	}
-	
+
 	var checkCollisionForOpponent = function(opponent){
 		platforms.forEach(function(platform, no){
 			//Client will render opponent collision
