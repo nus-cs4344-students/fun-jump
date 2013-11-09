@@ -21,14 +21,15 @@
 	  this.finishline = new Image();
 	  this.progress = new Image();
 	  this.shield = new Image();
-	  
+	  this.shieldactivated = new Image();
+
 	  this.allImgLoaded = false;
 
 	  var that = this;
 
 
 	  // Ensure all images have loaded before starting the game
-	  var numImages = 14;
+	  var numImages = 16;
 	  var numLoaded = 0;
 	  function imageLoaded() {
 	    numLoaded++;
@@ -79,8 +80,10 @@
 	  this.progress.onload = function() {
 	    imageLoaded();
 	  }
-	  
 	  this.shield.onload = function(){
+		imageLoaded();
+	  }
+	   this.shieldactivated.onload = function(){
 		imageLoaded();
 	  }
 
@@ -101,6 +104,7 @@
 	  this.finishline.src = imagePath + "finish line" +".png";
 	  this.progress.src = imagePath + "progress bar" +".png";
 	  this.shield.src = imagePath + "shield" + ".png";
+	  this.shieldactivated.src = imagePath + "shield activated" + ".png";
 	}
 ImageRepository.NORMAL_HEIGHTDIFF = 10;
 ImageRepository.PROGRESS_HEIGHT = 420;
