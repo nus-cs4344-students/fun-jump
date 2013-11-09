@@ -24,10 +24,12 @@ function Player(id) {
 	that.die = false;
 	that.image = new Image();
 	that.id = id;
-	that.canMove = true;
+	that.canMove = false;
 	that.stepMove = 0;	//Check how many left / right it has moved
 	that.dirMove;	//Check whether its left / right it has moved.
-	
+
+	that.gameDuration = 0;//the duration of the player's gameplay
+
 	that.vx = 0;
 
 	that.isFalling = true;
@@ -39,7 +41,7 @@ function Player(id) {
 	that.screenMove = false;
 
 	that.powerup = false;	//Shield Powerup
-	
+
 	that.setPosition = function(x,y){
 		that.x = x;
 		that.y = y;
@@ -117,7 +119,7 @@ function Player(id) {
 				that.projectiles.forEach(function(projectile,ind){
 					projectile.y += that.jumpSpeed;
 				});
-				
+
 				//Don't need to do 'taken' cause i can juz render it out.
 				that.powerups.forEach(function(powerup,ind){
 					powerup.y += that.jumpSpeed;	//Move the powerup accordingly.
@@ -163,7 +165,7 @@ Player.WIDTH = 40;
 Player.XACCELERATION = 1.5;
 Player.JUMPSPEED = 17;
 Player.FALLSPEED = 1;
-Player.SHOOTDELAY = 1000;
+Player.SHOOTDELAY = 700; //delay between 2 consecutive fires, a player is not allowed to shoot continuously
 Player.FREEZE = 100;
 Player.POWERUPDIST = 1;	//1 pixels away from player
 Player.POWERUPSIZE = Player.HEIGHT + Player.POWERUPDIST * 2;

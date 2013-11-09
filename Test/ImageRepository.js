@@ -21,14 +21,14 @@
 	  this.finishline = new Image();
 	  this.progress = new Image();
 	  this.shield = new Image();
-	  
+
 	  this.allImgLoaded = false;
 
 	  var that = this;
 
 
 	  // Ensure all images have loaded before starting the game
-	  var numImages = 14;
+	  var numImages = 15;
 	  var numLoaded = 0;
 	  function imageLoaded() {
 	    numLoaded++;
@@ -79,7 +79,7 @@
 	  this.progress.onload = function() {
 	    imageLoaded();
 	  }
-	  
+
 	  this.shield.onload = function(){
 		imageLoaded();
 	  }

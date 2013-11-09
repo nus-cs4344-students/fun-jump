@@ -14,6 +14,7 @@ function Client(){
 	var playerStopped = true;
 	var connected = false;
 	var moveCount = 0;
+	var gameStartAtTime; //the time that player starts moving
 
 	//For platform / powerups
 	var totalNoOfPlatforms = 20;
@@ -90,9 +91,9 @@ function Client(){
 							opponentArr[i].type = "opponent";
 							noOfPlayers++;
 							if((message.ready & (1<<i)) == 1){
-								$("#player"+i+"_ready").text("Ready");	
+								$("#player"+i+"_ready").text("Ready");
 							}else{
-								$("#player"+i+"_ready").text("Not Ready");	
+								$("#player"+i+"_ready").text("Not Ready");
 							}
 						}
 					}
@@ -192,6 +193,14 @@ function Client(){
 					var timeToWait = message.timeToStart - (new Date()).getMilliseconds();
 					console.log("time to wait: "+ timeToWait);
 					// setTimeout(functon(){},timeToWait);
+
+					//Game starts so the player can move now
+					//Record the time the player starts moving
+					if(player != null){
+						player.canMove = true;
+						gameStartAtTime = Date.now();
+					}
+
 					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
 
@@ -362,6 +371,9 @@ function Client(){
 			drawProgressBar(context);
 		}
 
+		drawPlatforms(context);
+		drawPowerups(context);
+
 		//Projectile should be drawn behind player so that missed projectile would look more natural
 		for(var i = 0; i < opponentArr.length; i ++){
 			var opponent = opponentArr[i];
@@ -402,8 +414,6 @@ function Client(){
 
 		//draw player
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
-		drawPlatforms(context);
-		drawPowerups(context);
 
     }
 
@@ -541,6 +551,7 @@ function Client(){
 			opponentArr[oID].yForOpp = platforms[platforms.length-1].y - Player.HEIGHT;
 			opponentArr[oID].canMove = message.playerCanMove;
 			opponentArr[oID].finish = true;
+			opponentArr[oID].gameDuration = message.playerGameDuration;
 		}
 
 		//TELEPORT NEEDS TO HAPPEN! TOO FAR
@@ -689,9 +700,12 @@ function Client(){
 	}
 
 	var fireBullet = function(endX, endY){
-		//Play sound:
-			fireSound.play();
+
+		//A player is allowed to fire if he can move and the time interval between this fire
+		//and the last fire is greater than the player shoot delay
 		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
+	        //Play sound:
+	        fireSound.play();
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
@@ -708,7 +722,7 @@ function Client(){
 	        player.projectileTimer = Date.now();
 	        player.shoot = true;
 
-	        
+
 
 	        sendToServer({type:"fire", projkey: projKey, projectile: newproj, fireTime: player.projectileTimer, pid: player.id});
     	}
@@ -793,6 +807,7 @@ function Client(){
 			playerFallSpeed: player.fallSpeed,
 			playerCanMove: player.canMove,
 			playerFinish: player.finish,
+			playerGameDuration: player.gameDuration,
 			pid: player.id});
 	}
 
@@ -876,6 +891,7 @@ function Client(){
 						player.finish = true;
 						player.canMove = false;
 						player.y = platform.y-Player.HEIGHT;
+						player.gameDuration = Date.now() - gameStartAtTime;
 						updatePlayerVariables();
 					}
 					break;
