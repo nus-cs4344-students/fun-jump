@@ -204,6 +204,9 @@ function Client(){
 						opponentArr[message.pid].powerup = true;
 					}
 					break;
+				case "latencyCheck":
+					sendToServer({type:"latencyCheck", content:Date.now(), serverTime:message.serverTime});
+					break;
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;

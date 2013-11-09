@@ -18,6 +18,9 @@ function Server(PORT) {
 
 	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
 	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
+	var latencyPlayers = new Array(maxNoOfPlayers);
+	var timeDiffPlayers = new Array(maxNoOfPlayers);
+	
 	var ready = 0;
 	var gameStarted;
 	var nextAvailSlot;
@@ -79,7 +82,9 @@ function Server(PORT) {
 			// Upon connection established from a client socket
             sock.on('connection', function (conn) {
 				var playerID = nextAvailSlot();
-
+				var noOfLatencyCheckPacket = 0;
+				var totalLatencyAfterThreePackets = 0;
+				var initialServerTime = 0;
 				//FULL! cannot join! Appserver should do the checking but just in case...
 				if(playerID == null){
 					unicast(conn, {type:"error", content:"Game is full!"});
@@ -104,8 +109,12 @@ function Server(PORT) {
 					//Server sends to everyone else that a new player has joined, together with his playerID
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					numOfPlayers++;
-
-
+					
+					//Get Client RTT & Sync the time
+					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
+					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
+					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
+					
 					// --------------- Commands Server Receives From Client ------------------
 					conn.on('close', function () {
 						console.log("Player ID: " + playerID + " has DISCONNECTED!");
@@ -178,6 +187,13 @@ function Server(PORT) {
 								break;
 							case "removeshield":
 								broadcast(message);
+								break;
+							case "latencyCheck":
+								noOfLatencyCheckPacket++;
+								totalLatencyAfterThreePackets = totalLatencyAfterThreePackets + message.content;
+								if(noOfLatencyCheckPacket == 3)
+									console.log("3 packets captured");
+								console.log(Date.now() - message.serverTime);
 								break;
 							default:
 								console.log("Unhandled " + message.type);
