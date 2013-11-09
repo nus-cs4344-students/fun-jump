@@ -511,12 +511,13 @@ function Client(){
 		}
 
 		if(player.powerup == true){
-			context.beginPath();	//FOR SHIELD
+		/*	context.beginPath();	//FOR SHIELD
 			context.rect(playerx-Player.POWERUPDIST,playery-Player.POWERUPDIST,Player.POWERUPSIZE,Player.POWERUPSIZE);
 			context.closePath();
 			context.strokeStyle = "green";
 			context.lineWidth="4";
-			context.stroke();
+			context.stroke(); */
+			context.drawImage(imageRepository.shieldactivated, playerx-Player.POWERUPDIST, playery-Player.POWERUPDIST, Player.POWERUPSIZE, Player.POWERUPSIZE);
 		}
 
 		if(playerIsHit == true){
@@ -878,7 +879,7 @@ function Client(){
 	var drawPowerups = function(context){
 		for(var i = 0; i < powerups.length; i ++){
 			if(powerups[i].taken == false)
-				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y);
+				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y,Powerup.WIDTH,Powerup.HEIGHT);
 		}
 	}
 
