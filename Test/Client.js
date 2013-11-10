@@ -1,6 +1,6 @@
 "use strict";
 function Client(){
-	var that = this;
+	var that               = this;
 	var socket;         // socket used to connect to server
 
 	//FOR GUI
@@ -11,17 +11,17 @@ function Client(){
 	//For player / opponent objects
 	var player;
 	var opponentArr;
-	var playerStopped = true;
-	var connected = false;
-	var moveCount = 0;
+	var playerStopped      = true;
+	var connected          = false;
+	var moveCount          = 0;
 	var gameStartAtTime; //the time that player starts moving
 
 	//For platform / powerups
 	var totalNoOfPlatforms = 20;
-	var noOfPlatforms = 5;
-	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
-	var platforms = [];
-	var powerups = [];
+	var noOfPlatforms      = 5;
+	var platformDist       = (FunJump.HEIGHT/ noOfPlatforms);
+	var platforms          = [];
+	var powerups           = [];
 
 
 	//For global objects
@@ -29,9 +29,11 @@ function Client(){
 	var convMaxXThres = 50;
 	var	convMaxYThres = 50;
 	var noOfPlayers = 0;
+	var GameLoopID = null;
+	var players = [];
 
 	//Sound
-	var fireSound = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
+	var fireSound          = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
 
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -113,6 +115,11 @@ function Client(){
 
 				case "updateOpponent":
 					updateOpponent(message);
+
+					if(message.playerFinish == true){
+						addFinishPlayer(message.pid,message.playerGameDuration);
+					}
+
 					break;
 
 				case "updateOpponentDirection":
@@ -201,7 +208,7 @@ function Client(){
 						gameStartAtTime = Date.now();
 					}
 
-					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
+					GameLoopID = setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
 
 				case "powerup":
@@ -216,16 +223,101 @@ function Client(){
 				case "latencyCheck":
 					sendToServer({type:"latencyCheck", content:Date.now(), serverTime:message.serverTime});
 					break;
+
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
                 }
+
 				// ------------END of Commands Client Receives From Server ------------------
             }
         } catch (e) {
             console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + loction.port);
         }
     }
+
+	//This function draws the result scence.
+	//Called only once when the client receives message "result" from server
+	var drawResultScence = function(){
+		 console.log("draw result"+noOfPlayers);
+		 // Get context
+        var context = playArea.getContext("2d");
+
+		// Clears the playArea
+        context.clearRect(0, 0, playArea.width, playArea.height);
+        //draw background
+        context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
+        //draw winning platform
+        var winningX = FunJump.WIDTH/2-ImageRepository.WINNING_WIDTH*3/8;
+        var winningY = FunJump.HEIGHT/2-ImageRepository.WINNING_HEIGHT;
+        context.drawImage(imageRepository.winningplatform, winningX,
+        	winningY, ImageRepository.WINNING_WIDTH, ImageRepository.WINNING_HEIGHT);
+        //draw finish line
+        context.drawImage(imageRepository.finishline,0,winningY+ImageRepository.WINNING_HEIGHT);
+
+		var firstX = winningX + 105 + 25;
+		var firstY = winningY + 45 - Player.HEIGHT;
+		var secondX = winningX + 30;
+		var secondY = winningY + 75 - Player.HEIGHT;
+		var thirdX = winningX + 105*2 + 30;
+		var thirdY = winningY + 75 - Player.HEIGHT;
+		var fourthX = winningX + 105*3 + 30;
+		var fourthY = winningY + ImageRepository.WINNING_HEIGHT - Player.HEIGHT;
+
+
+		var textSX = 160;
+		var textSY = winningY + ImageRepository.WINNING_HEIGHT + Platform.HEIGHT + 50;
+		context.font="20px Comic Sans MS";
+		 context.fillStyle = 'black';
+
+		for(var i=0; i<players.length; i++){
+			//draw players
+			switch(i){
+				case 0:
+					drawPlayer(context,players[i].playerid, firstX, firstY);
+					break;
+				case 1:
+					drawPlayer(context,players[i].playerid, secondX, secondY);
+					break;
+				case 2:
+					drawPlayer(context,players[i].playerid, thirdX, thirdY);
+					break;
+				case 3:
+					drawPlayer(context,players[i].playerid, fourthX, fourthY);
+					break;
+				default:
+					console.log("invalid pid: "+i);
+			}
+			//draw result
+			if(players[i].playerid == player.id){
+				 	context.fillText("You :   "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+			else{
+					context.fillText("Player "+(players[i].playerid+1)+" : "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+		}
+	}
+
+	var drawPlayer = function(context, playerid, playerx, playery){
+
+		switch(playerid){
+
+				case 0:
+					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 1:	//@ Kathy, why is this so complicated compared to the rest??
+					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
+					break;
+				case 2:
+					context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 3:
+					context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				default:
+					console.log("Invalid player id: "+ playerid);}
+
+	}
 
 	//This function is needed to reduce the number of updates by the client for movement!
 	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
@@ -345,7 +437,41 @@ function Client(){
 		    // as above
 		    e.preventDefault();
 		}, false);
+
+		window.addEventListener("devicemotion", function(e) {
+            onDeviceMotion(e);
+        }, false);
+        window.ondevicemotion = function(e) {
+            onDeviceMotion(e);
+        }
 	}
+
+	var onDeviceMotion = function(e) {
+        var vx = e.accelerationIncludingGravity.x;
+        player.accelerate(vx);
+   //      if ( vx > 1) //Move right
+   //      {
+   //      	if(player.canMove == true){
+			// 	playerStopped = false;
+			// 	player.move('right');
+			// }
+
+   //      }else if(vx < -1) //Move left
+   //      {
+   //          // $("#serverMsg").text("onDeviceMotion"+vx);
+   //          if(player.canMove == true){
+			// 	playerStopped = false;
+			// 	player.move('left');
+			// }
+   //      }
+   //      else// stop player
+   //      {
+   //      	if(player.canMove == true){
+			// 	playerStopped = true;
+			// 	stopPlayer(true);
+			// }
+   //      }
+    }
 
     this.start = function() {
 		initNetwork();	//Initilizes player object too!
@@ -418,6 +544,22 @@ function Client(){
 		//draw player
 		renderPlayer(context, player.id, player.x,(FunJump.HEIGHT - (player.distance - player.yRel)), player.isHit, player.shoot, player);
 
+    }
+
+    var drawResult = function(context){
+    	var textSX = 20;
+		var textSY = 10;
+		context.font="20px Georgia";
+
+		for(var i=0; i<players.length; i++){
+			//draw result
+			if(players[i].playerid == player.id){
+				 	context.fillText("You:   "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+			else{
+					context.fillText("Player "+players[i].playerid+" : "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+		}
     }
 
 	//Draw the progress bar for everyone.
@@ -514,17 +656,31 @@ function Client(){
 		}
 
 		if(player.powerup == true){
-		/*	context.beginPath();	//FOR SHIELD
-			context.rect(playerx-Player.POWERUPDIST,playery-Player.POWERUPDIST,Player.POWERUPSIZE,Player.POWERUPSIZE);
-			context.closePath();
-			context.strokeStyle = "green";
-			context.lineWidth="4";
-			context.stroke(); */
+
 			context.drawImage(imageRepository.shieldactivated, playerx-Player.POWERUPDIST, playery-Player.POWERUPDIST, Player.POWERUPSIZE, Player.POWERUPSIZE);
 		}
 
 		if(playerIsHit == true){
 			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
+		}
+
+		if(player.canMove == false && playerIsHit == false && player.finish == false && player.start==false){// player falls down to bottom
+			var aNum = Math.floor((Math.random()*3)+1);// generate a number between 1 and 3
+
+			switch(aNum){
+				case 1:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					break;
+				case 2:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					context.drawImage(imageRepository.firem, playerx, playery-20, Player.WIDTH, 60);
+					break;
+				case 3:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					context.drawImage(imageRepository.firem, playerx, playery-20, Player.WIDTH, 60);
+					context.drawImage(imageRepository.firel, playerx, playery-30, Player.WIDTH, 70);
+					break;
+			}
 		}
 	}
 
@@ -588,7 +744,6 @@ function Client(){
 	}
 
 	var GameLoop = function(){
-
 		//console.log(player.projectiles);
 		//update projectile status of the player
 		for (var key in player.projectiles) {
@@ -808,6 +963,40 @@ function Client(){
 		}
 	}
 
+	var addFinishPlayer = function(playerid, playerduration){
+		var aFinishPlayer = {playerid:playerid,gameDuration:playerduration};
+			if(players.indexOf(aFinishPlayer) == -1){
+					if(players.length == 0){//the array is empty
+					players[0] = aFinishPlayer;
+					}
+					else{
+						for(var i=0; i<players.length; i++){
+							if(aFinishPlayer.playerid == players[i].playerid){
+								break;
+							}
+							else if(aFinishPlayer.gameDuration < players[i].gameDuration){
+								players.splice(i, 0, aFinishPlayer);
+							}
+							else if(i == players.length-1){
+								players[players.length] = aFinishPlayer;
+								break;
+							}
+						}
+						if(players.length >= noOfPlayers && player.finish == true)//all players has reached finish line
+						{
+
+							clearInterval(GameLoopID);
+							GameLoopID = null;
+							setTimeout(function(){
+							drawResultScence(players);},1000);
+
+						}
+					}
+			}
+
+			console.log(players);
+	}
+
 	var updatePlayerVariables = function(){
 		sendToServer({type:"updatePlayerPosition",
 			playerX: player.x,
@@ -821,6 +1010,10 @@ function Client(){
 			playerFinish: player.finish,
 			playerGameDuration: player.gameDuration,
 			pid: player.id});
+
+		if(player.finish == true){
+			addFinishPlayer(player.id, player.gameDuration);
+		}
 	}
 
 	var updatePlayerDirection = function(){
@@ -914,6 +1107,13 @@ function Client(){
 					(player.y + Player.HEIGHT > platform.y) &&
 					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 						platform.onCollide(player);
+						if (platform.type==0){
+							var jumpSound = new Audio("libs/sounds/Pop-Texavery-8926_hifi.mp3"); // buffers automatically when created
+							jumpSound.play();
+						}else{
+							var jumpSound = new Audio("libs/sounds/Pop_2-Texavery-8930_hifi.mp3");
+							jumpSound.play();
+						}
 					}
 			}
 

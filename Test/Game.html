@@ -30,7 +30,7 @@
 
 				$("#startBtn").tap(function(){
 					$(".ui-btn-text").text("Ready");
-					$(this).css("color", "#FF00FF");
+					$(".ui-btn-text").css("color", "#FF00FF");
 					$(this).addClass('ui-disabled');
 					client.sendToServer({type:"ready", pid:client.pid});
 					
