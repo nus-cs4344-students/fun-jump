@@ -84,6 +84,7 @@ function Server(PORT) {
 				var playerID = nextAvailSlot();
 				var noOfLatencyCheckPacket = 0;
 				var totalLatencyAfterThreePackets = 0;
+				var clientTimeDiffAfterThreePackets = 0;
 				var initialServerTime = 0;
 				//FULL! cannot join! Appserver should do the checking but just in case...
 				if(playerID == null){
@@ -101,7 +102,6 @@ function Server(PORT) {
 					sockets[playerID] = conn;
 					console.log("New Player ID: " + playerID + " has connected");
 
-
 					//Server sends the map and the new players id to him
 					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS, ready:ready});
 					connectedPlayers[playerID] = true;
@@ -110,10 +110,10 @@ function Server(PORT) {
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					numOfPlayers++;
 					
-					//Get Client RTT & Sync the time
-					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
-					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
-					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
+					//Get Client RTT & Sync the time (3 packets at 1 second interval diff)
+					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},1000);
+					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},2000);
+					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},3000);
 					
 					// --------------- Commands Server Receives From Client ------------------
 					conn.on('close', function () {
@@ -177,10 +177,39 @@ function Server(PORT) {
 								}
 								break;
 							case "powerup":
-								//TODO: SERVER DECICISION ON WHO SHOULD GET SHIELD
+								/*	Server decides on whom will get the powerup based on
+									
+									Rules are as follows
+									1) When a server receives a message that the client has received a powerup,
+									2) it will wait for 300ms before giving the powerup to the player.
+									3) During the wait, it will check for any other person trying to get the powerup
+									4) If there are, it will check the time received. 
+									5) Assume playerA took it at 5500ms and playerB took it at 5400ms.
+										However, playerA command got received by the server first while playerB command received second.
+										This is within the 'safe 300ms' zone. 
+									6) Server should give playerB the benefit of having the shield as they took it first despite server receiving the taking shield second. [ENSURE FAIRNESS]
+									
+								*/
+							
 								if(powerups[message.powerupid].taken == false){
-									powerups[message.powerupid].taken = true;
-									broadcast(message);	//broadcast to all!
+									if(powerups[message.powerupid].touchTime == 0){	//When the powerup has been taken up first, the timer will start and best time/player will be set.
+										powerups[message.powerupid].touchTime = message.pTime - timeDiffPlayers[message.pid];	//Get the time based on the server that it touched the shield.
+										
+										powerups[message.powerupid].pid = message.pid;
+										
+										setTimeout(function(){
+											powerups[message.powerupid].taken = true;
+											message.pid = powerups[message.powerupid].pid;	//Latest PID update.
+											broadcast(message);	//broadcast to all!
+										},300);	// 300 milisecond
+									}
+									
+									
+									//If it detects a message where the case is similar to (5), the current player will have priority.
+									else if(powerups[message.powerupid].touchtime > message.pTime - timeDiffPlayers[message.pid]){
+										powerups[message.powerupid].touchTime = message.pTime - timeDiffPlayers[message.pid];
+										powerups[message.powerupid].pid = message.pid;
+									}
 								}
 								else{	//ignore.
 								}
@@ -190,10 +219,21 @@ function Server(PORT) {
 								break;
 							case "latencyCheck":
 								noOfLatencyCheckPacket++;
-								totalLatencyAfterThreePackets = totalLatencyAfterThreePackets + message.content;
-								if(noOfLatencyCheckPacket == 3)
-									console.log("3 packets captured");
-								console.log(Date.now() - message.serverTime);
+								totalLatencyAfterThreePackets = totalLatencyAfterThreePackets + (Date.now() - message.serverTime);
+								
+								//Server - Client time - RTT/2
+								//(If -ve means Client time is SLOWER than Server Time)
+								//(If +ve means Client time is FASTER than Server Time)
+								//Final Server Time: 10:17,	Final Client Time: 10:31	, One Way RTT is 1 minute.
+								//10:30 - 10:17 + 1 minute = +14 minute difference.
+								clientTimeDiffAfterThreePackets = clientTimeDiffAfterThreePackets + 
+											message.content - Date.now() + ((Date.now() - message.serverTime) / 2) ;
+											
+								if(noOfLatencyCheckPacket == 3){	//average of three packets.
+									latencyPlayers[playerID] = totalLatencyAfterThreePackets / 3;
+									timeDiffPlayers[playerID] = clientTimeDiffAfterThreePackets / 3;
+									//console.log("3 packets captured.AVE RTT LATENCY IS " + latencyPlayers[playerID] + " " + timeDiffPlayers[playerID]);
+								}
 								break;
 							default:
 								console.log("Unhandled " + message.type);

@@ -942,7 +942,7 @@ function Client(){
 					((player.x > powerup.x) && (player.x < powerup.x + Powerup.WIDTH) &&
 					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))){
 						powerup.taken = true;
-						sendToServer({type:"powerup", powerupid: powerup.id, pid:player.id});
+						sendToServer({type:"powerup", powerupid: powerup.id, pid:player.id, pTime:Date.now()});
 					}
 				}
 			});

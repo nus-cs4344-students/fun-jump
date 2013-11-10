@@ -3,6 +3,8 @@ function Powerup (x,y,id){	//ONLY SHIELD FOR NOW!
 	that.origY = y;
 	that.gameY = FunJump.HEIGHT-that.origY;
 	that.id = id;
+	that.touchTime = 0;
+	that.pid = -1;
 	that.taken = false;	//Taken or not
 
 	that.x = x;
