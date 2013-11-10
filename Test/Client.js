@@ -1,6 +1,6 @@
 "use strict";
 function Client(){
-	var that = this;
+	var that               = this;
 	var socket;         // socket used to connect to server
 
 	//FOR GUI
@@ -11,17 +11,17 @@ function Client(){
 	//For player / opponent objects
 	var player;
 	var opponentArr;
-	var playerStopped = true;
-	var connected = false;
-	var moveCount = 0;
+	var playerStopped      = true;
+	var connected          = false;
+	var moveCount          = 0;
 	var gameStartAtTime; //the time that player starts moving
 
 	//For platform / powerups
 	var totalNoOfPlatforms = 20;
-	var noOfPlatforms = 5;
-	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
-	var platforms = [];
-	var powerups = [];
+	var noOfPlatforms      = 5;
+	var platformDist       = (FunJump.HEIGHT/ noOfPlatforms);
+	var platforms          = [];
+	var powerups           = [];
 
 
 	//For global objects
@@ -33,7 +33,7 @@ function Client(){
 	var players = [];
 
 	//Sound
-	var fireSound = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
+	var fireSound          = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
 
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -437,7 +437,41 @@ function Client(){
 		    // as above
 		    e.preventDefault();
 		}, false);
+
+		window.addEventListener("devicemotion", function(e) {
+            onDeviceMotion(e);
+        }, false);
+        window.ondevicemotion = function(e) {
+            onDeviceMotion(e);
+        }
 	}
+
+	var onDeviceMotion = function(e) {
+        var vx = e.accelerationIncludingGravity.x;
+        player.accelerate(vx);
+   //      if ( vx > 1) //Move right
+   //      {
+   //      	if(player.canMove == true){
+			// 	playerStopped = false;
+			// 	player.move('right');
+			// }
+
+   //      }else if(vx < -1) //Move left
+   //      {
+   //          // $("#serverMsg").text("onDeviceMotion"+vx);
+   //          if(player.canMove == true){
+			// 	playerStopped = false;
+			// 	player.move('left');
+			// }
+   //      }
+   //      else// stop player
+   //      {
+   //      	if(player.canMove == true){
+			// 	playerStopped = true;
+			// 	stopPlayer(true);
+			// }
+   //      }
+    }
 
     this.start = function() {
 		initNetwork();	//Initilizes player object too!
@@ -1073,6 +1107,13 @@ function Client(){
 					(player.y + Player.HEIGHT > platform.y) &&
 					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 						platform.onCollide(player);
+						if (platform.type==0){
+							var jumpSound = new Audio("libs/sounds/Pop-Texavery-8926_hifi.mp3"); // buffers automatically when created
+							jumpSound.play();
+						}else{
+							var jumpSound = new Audio("libs/sounds/Pop_2-Texavery-8930_hifi.mp3");
+							jumpSound.play();
+						}
 					}
 			}
 
