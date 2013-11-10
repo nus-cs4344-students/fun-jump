@@ -26,9 +26,11 @@ function Client(){
 
 	//For global objects
 	var debugTxt;
-	var convMaxXThres      = 50;
-	var	convMaxYThres      = 50;
-	var noOfPlayers        = 0;
+	var convMaxXThres = 50;
+	var	convMaxYThres = 50;
+	var noOfPlayers = 0;
+	var GameLoopID = null;
+	var players = [];
 
 	//Sound
 	var fireSound          = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
@@ -113,6 +115,11 @@ function Client(){
 
 				case "updateOpponent":
 					updateOpponent(message);
+
+					if(message.playerFinish == true){
+						addFinishPlayer(message.pid,message.playerGameDuration);
+					}
+
 					break;
 
 				case "updateOpponentDirection":
@@ -201,7 +208,7 @@ function Client(){
 						gameStartAtTime = Date.now();
 					}
 
-					setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
+					GameLoopID = setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
 
 				case "powerup":
@@ -213,16 +220,104 @@ function Client(){
 						opponentArr[message.pid].powerup = true;
 					}
 					break;
+				case "latencyCheck":
+					sendToServer({type:"latencyCheck", content:Date.now(), serverTime:message.serverTime});
+					break;
+
                 default:
 					appendMessage("serverMsg", "unhandled meesage type " + message.type);
 					break;
                 }
+
 				// ------------END of Commands Client Receives From Server ------------------
             }
         } catch (e) {
             console.log("Failed to connect to " + "http://" + FunJump.SERVER_NAME + ":" + loction.port);
         }
     }
+
+	//This function draws the result scence.
+	//Called only once when the client receives message "result" from server
+	var drawResultScence = function(){
+		 console.log("draw result");
+		 // Get context
+        var context = playArea.getContext("2d");
+
+		// Clears the playArea
+        context.clearRect(0, 0, playArea.width, playArea.height);
+        //draw background
+        context.drawImage(imageRepository.background, 0, 0, playArea.width, playArea.height);
+        //draw winning platform
+        var winningX = FunJump.WIDTH/2-ImageRepository.WINNING_WIDTH*3/8;
+        var winningY = FunJump.HEIGHT/2-ImageRepository.WINNING_HEIGHT;
+        context.drawImage(imageRepository.winningplatform, winningX,
+        	winningY, ImageRepository.WINNING_WIDTH, ImageRepository.WINNING_HEIGHT);
+        //draw finish line
+        context.drawImage(imageRepository.finishline,0,winningY+ImageRepository.WINNING_HEIGHT);
+
+		var firstX = winningX + 105 + 25;
+		var firstY = winningY + 45 - Player.HEIGHT;
+		var secondX = winningX + 30;
+		var secondY = winningY + 75 - Player.HEIGHT;
+		var thirdX = winningX + 105*2 + 30;
+		var thirdY = winningY + 75 - Player.HEIGHT;
+		var fourthX = winningX + 105*3 + 30;
+		var fourthY = winningY + ImageRepository.WINNING_HEIGHT - Player.HEIGHT;
+
+
+		var textSX = 160;
+		var textSY = winningY + ImageRepository.WINNING_HEIGHT + Platform.HEIGHT + 50;
+		context.font="20px Comic Sans MS";
+		 context.fillStyle = 'black';
+
+		for(var i=0; i<players.length; i++){
+			//draw players
+			switch(i){
+				case 0:
+					drawPlayer(context,players[i].playerid, firstX, firstY);
+					break;
+				case 1:
+					drawPlayer(context,players[i].playerid, secondX, secondY);
+					break;
+				case 2:
+					drawPlayer(context,players[i].playerid, thirdX, thirdY);
+					break;
+				case 3:
+					drawPlayer(context,players[i].playerid, fourthX, fourthY);
+					break;
+				default:
+					console.log("invalid pid: "+i);
+			}
+			//draw result
+			if(players[i].playerid == player.id){
+				 	context.fillText("You :   "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+			else{
+					context.fillText("Player "+(players[i].playerid+1)+" : "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+		}
+	}
+
+	var drawPlayer = function(context, playerid, playerx, playery){
+
+		switch(playerid){
+
+				case 0:
+					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 1:	//@ Kathy, why is this so complicated compared to the rest??
+					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
+					break;
+				case 2:
+					context.drawImage(imageRepository.angel, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				case 3:
+					context.drawImage(imageRepository.evil, playerx, playery, Player.WIDTH, Player.HEIGHT);
+					break;
+				default:
+					console.log("Invalid player id: "+ playerid);}
+
+	}
 
 	//This function is needed to reduce the number of updates by the client for movement!
 	//The opponent will render accordingly to an update. If i receive 1xleft and receive 1xstop after 4 seconds later, it will render left for 4 seconds. During this 4 seconds, there should not be any updates by the opponent.
@@ -451,6 +546,22 @@ function Client(){
 
     }
 
+    var drawResult = function(context){
+    	var textSX = 20;
+		var textSY = 10;
+		context.font="20px Georgia";
+
+		for(var i=0; i<players.length; i++){
+			//draw result
+			if(players[i].playerid == player.id){
+				 	context.fillText("You:   "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+			else{
+					context.fillText("Player "+players[i].playerid+" : "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
+			}
+		}
+    }
+
 	//Draw the progress bar for everyone.
     var drawProgressBar = function(context){
 
@@ -545,12 +656,8 @@ function Client(){
 		}
 
 		if(player.powerup == true){
-			context.beginPath();	//FOR SHIELD
-			context.rect(playerx-Player.POWERUPDIST,playery-Player.POWERUPDIST,Player.POWERUPSIZE,Player.POWERUPSIZE);
-			context.closePath();
-			context.strokeStyle = "green";
-			context.lineWidth="4";
-			context.stroke();
+
+			context.drawImage(imageRepository.shieldactivated, playerx-Player.POWERUPDIST, playery-Player.POWERUPDIST, Player.POWERUPSIZE, Player.POWERUPSIZE);
 		}
 
 		if(playerIsHit == true){
@@ -696,6 +803,14 @@ function Client(){
 			}
 		}
 
+		if(player.distance-Player.HEIGHT>=platforms[totalNoOfPlatforms-1].gameY && player.finish==false){
+			player.finish = true;
+			player.canMove = false;
+			player.y = platforms[totalNoOfPlatforms-1].y-Player.HEIGHT;
+			player.gameDuration = Date.now() - gameStartAtTime;
+			updatePlayerVariables();
+		}
+
 		render();
 	};
 
@@ -830,6 +945,40 @@ function Client(){
 		}
 	}
 
+	var addFinishPlayer = function(playerid, playerduration){
+		var aFinishPlayer = {playerid:playerid,gameDuration:playerduration};
+			if(players.indexOf(aFinishPlayer) == -1){
+					if(players.length == 0){//the array is empty
+					players[0] = aFinishPlayer;
+					}
+					else{
+						for(var i=0; i<players.length; i++){
+							if(aFinishPlayer.playerid == players[i].playerid){
+								break;
+							}
+							else if(aFinishPlayer.gameDuration < players[i].gameDuration){
+								players.splice(i, 0, aFinishPlayer);
+							}
+							else if(i == players.length-1){
+								players[players.length] = aFinishPlayer;
+								break;
+							}
+						}
+						if(players.length >= noOfPlayers && player.finish == true)//all players has reached finish line
+						{
+
+							clearInterval(GameLoopID);
+							GameLoopID = null;
+							setTimeout(function(){
+							drawResultScence(players);},1000);
+
+						}
+					}
+			}
+
+			console.log(players);
+	}
+
 	var updatePlayerVariables = function(){
 		sendToServer({type:"updatePlayerPosition",
 			playerX: player.x,
@@ -843,6 +992,10 @@ function Client(){
 			playerFinish: player.finish,
 			playerGameDuration: player.gameDuration,
 			pid: player.id});
+
+		if(player.finish == true){
+			addFinishPlayer(player.id, player.gameDuration);
+		}
 	}
 
 	var updatePlayerDirection = function(){
@@ -912,7 +1065,7 @@ function Client(){
 	var drawPowerups = function(context){
 		for(var i = 0; i < powerups.length; i ++){
 			if(powerups[i].taken == false)
-				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y);
+				context.drawImage(imageRepository.shield,powerups[i].x,powerups[i].y,Powerup.WIDTH,Powerup.HEIGHT);
 		}
 	}
 

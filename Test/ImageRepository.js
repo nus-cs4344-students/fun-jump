@@ -21,6 +21,8 @@
 	  this.finishline = new Image();
 	  this.progress = new Image();
 	  this.shield = new Image();
+	  this.shieldactivated = new Image();
+	  this.winningplatform = new Image();
 
 	  this.allImgLoaded = false;
 
@@ -28,7 +30,7 @@
 
 
 	  // Ensure all images have loaded before starting the game
-	  var numImages = 15;
+	  var numImages = 17;
 	  var numLoaded = 0;
 	  function imageLoaded() {
 	    numLoaded++;
@@ -79,8 +81,13 @@
 	  this.progress.onload = function() {
 	    imageLoaded();
 	  }
-
 	  this.shield.onload = function(){
+		imageLoaded();
+	  }
+	  this.shieldactivated.onload = function(){
+		imageLoaded();
+	  }
+	  this.winningplatform.onload = function(){
 		imageLoaded();
 	  }
 
@@ -101,10 +108,15 @@
 	  this.finishline.src = imagePath + "finish line" +".png";
 	  this.progress.src = imagePath + "progress bar" +".png";
 	  this.shield.src = imagePath + "shield" + ".png";
+	  this.shieldactivated.src = imagePath + "shield activated" + ".png";
+	  this.winningplatform.src = imagePath + "winning platform" + ".png";
 	}
 ImageRepository.NORMAL_HEIGHTDIFF = 10;
 ImageRepository.PROGRESS_HEIGHT = 420;
 ImageRepository.PROGRESS_WIDTH = 15;
 ImageRepository.PROGRESS_LENGTH = 400;
+ImageRepository.WINNING_WIDTH = 420;
+ImageRepository.WINNING_HEIGHT= 105;
+
 // For node.js require
 global.ImageRepository = ImageRepository;

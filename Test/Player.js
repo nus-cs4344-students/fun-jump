@@ -206,10 +206,10 @@ function Player(id) {
 Player.HEIGHT        = 40;
 Player.WIDTH         = 40;
 Player.XACCELERATION = 1.5;
-Player.JUMPSPEED     = 17;
-Player.FALLSPEED     = 1;
-Player.SHOOTDELAY    = 700; //delay between 2 consecutive fires, a player is not allowed to shoot continuously
-Player.FREEZE        = 100;
-Player.POWERUPDIST   = 1;	//1 pixels away from player
-Player.POWERUPSIZE   = Player.HEIGHT + Player.POWERUPDIST * 2;
-global.Player        = Player;
+Player.JUMPSPEED = 17;
+Player.FALLSPEED = 1;
+Player.SHOOTDELAY = 700; //delay between 2 consecutive fires, a player is not allowed to shoot continuously
+Player.FREEZE = 100;
+Player.POWERUPDIST = 3;	//1 pixels away from player
+Player.POWERUPSIZE = Player.HEIGHT + Player.POWERUPDIST * 2;
+global.Player = Player;
