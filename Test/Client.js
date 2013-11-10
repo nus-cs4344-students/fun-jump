@@ -666,6 +666,14 @@ function Client(){
 			}
 		}
 
+		if(player.distance-Player.HEIGHT>=platforms[totalNoOfPlatforms-1].gameY && player.finish==false){
+			player.finish = true;
+			player.canMove = false;
+			player.y = platforms[totalNoOfPlatforms-1].y-Player.HEIGHT;
+			player.gameDuration = Date.now() - gameStartAtTime;
+			updatePlayerVariables();
+		}
+
 		render();
 	};
 
