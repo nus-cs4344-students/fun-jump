@@ -239,7 +239,7 @@ function Client(){
 	//This function draws the result scence.
 	//Called only once when the client receives message "result" from server
 	var drawResultScence = function(){
-		 console.log("draw result");
+		 console.log("draw result"+noOfPlayers);
 		 // Get context
         var context = playArea.getContext("2d");
 
@@ -629,6 +629,25 @@ function Client(){
 		if(playerIsHit == true){
 			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
 		}
+
+		if(player.canMove == false && playerIsHit == false && player.finish == false && player.start==false){// player falls down to bottom
+			var aNum = Math.floor((Math.random()*3)+1);// generate a number between 1 and 3
+
+			switch(aNum){
+				case 1:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					break;
+				case 2:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					context.drawImage(imageRepository.firem, playerx, playery-20, Player.WIDTH, 60);
+					break;
+				case 3:
+					context.drawImage(imageRepository.fires, playerx+3, playery+10, Player.WIDTH-6, 30);
+					context.drawImage(imageRepository.firem, playerx, playery-20, Player.WIDTH, 60);
+					context.drawImage(imageRepository.firel, playerx, playery-30, Player.WIDTH, 70);
+					break;
+			}
+		}
 	}
 
 	// Draw the bullets
@@ -691,7 +710,6 @@ function Client(){
 	}
 
 	var GameLoop = function(){
-
 		//console.log(player.projectiles);
 		//update projectile status of the player
 		for (var key in player.projectiles) {
