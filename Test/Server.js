@@ -20,7 +20,7 @@ function Server(PORT) {
 	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
 	var latencyPlayers = new Array(maxNoOfPlayers);
 	var timeDiffPlayers = new Array(maxNoOfPlayers);
-	
+
 	var ready = 0;
 	var gameStarted;
 	var nextAvailSlot;
@@ -109,12 +109,12 @@ function Server(PORT) {
 					//Server sends to everyone else that a new player has joined, together with his playerID
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					numOfPlayers++;
-					
+
 					//Get Client RTT & Sync the time
 					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
 					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
 					setTimeout(unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()}),5000);
-					
+
 					// --------------- Commands Server Receives From Client ------------------
 					conn.on('close', function () {
 						console.log("Player ID: " + playerID + " has DISCONNECTED!");
@@ -140,7 +140,7 @@ function Server(PORT) {
 									method: "GET"
 								},
 									function(res){}).end();
-						
+
 					});
 
 					conn.on('data', function (data) {
@@ -168,7 +168,7 @@ function Server(PORT) {
 							case "projGone":
 								broadcastToRest(message,playerID);
 								break;
-								
+
 							case "ready":
 								ready = ready | (1<<message.pid);
 								broadcastToRest(message, message.pid);
@@ -217,15 +217,15 @@ function Server(PORT) {
 
 	var generatePlatforms = function(){
 		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
-		
+
 		//'position' is Y of the platform, to place it in quite similar intervals it starts from 0
-		
+
 		for (var i = 0; i < totalNoOfPlatforms; i++) {
 			type = Math.floor(Math.random()*5);	//1:5 ratio for special:normal
 			if (type == 0){	//Special Platform Generated.
 				type = 1;
 				platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
-				
+
 				//Now we generate a normal platform near this platform.
 				var incorrectlyGenerated = true;
 				while(incorrectlyGenerated){
@@ -240,14 +240,14 @@ function Server(PORT) {
 						platforms[i] = new Platform(x,position,0);
 					}
 				}
-				
+
 				//New Y position
-				position = position - platformDist;				
+				position = position - platformDist;
 			}
 			else{
 				type = 0;
 				platforms[i] = new Platform(Math.random()*(FunJump.WIDTH-Platform.WIDTH),position,type);
-				
+
 				//New Y position
 				position = position - platformDist;
 			}
@@ -258,7 +258,7 @@ function Server(PORT) {
 		platforms[totalNoOfPlatforms] = new Platform(0,position,type);
 		position = position - platformDist;
 	};
-	
+
 	var generatePowerups = function(){
 		var powerupID = 0;
 		for (var i = 0; i < totalNoOfPlatforms; i++) {	//No of powerups depends on the number of platforms.
