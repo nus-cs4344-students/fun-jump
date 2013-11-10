@@ -10,18 +10,18 @@ function Server(PORT) {
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
 	var totalNoOfPlatforms = 20;
-	var noOfPlatforms = 6;
-	var platformDist = (FunJump.HEIGHT/ noOfPlatforms);
-	var platforms = [];
-	var powerups = [];
-	var maxNoOfPlayers = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
+	var noOfPlatforms      = 6;
+	var platformDist       = (FunJump.HEIGHT/ noOfPlatforms);
+	var platforms          = [];
+	var powerups           = [];
+	var maxNoOfPlayers     = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
 
-	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
-	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
-	var ready = 0;
+	var readyPlayers       = new Array(maxNoOfPlayers);	//Game state for ready.
+	var connectedPlayers   = new Array(maxNoOfPlayers);	//Game state for connected players
+	var ready              = 0;
 	var gameStarted;
 	var nextAvailSlot;
-	var numOfPlayers = 0;
+	var numOfPlayers       = 0;
 
 	var broadcast = function (msg) {
 		var id;
@@ -117,6 +117,9 @@ function Server(PORT) {
 						broadcastToRest(message,playerID);
 						numOfPlayers--;
 						console.log("NumberOfPlayers: "+numOfPlayers);
+
+						// TODO  Close server when all players left the room, need to cancle port binding to socket.
+
 						// if (numOfPlayers < 1){
 						// 	// sock.destroy();
 						// 	httpServer.close(function(){
