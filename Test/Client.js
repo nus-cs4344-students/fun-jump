@@ -76,6 +76,20 @@ function Client(){
 						$("#player"+message.pid+"_ready").text("Disconnected");
 					}
 					console.log("PLAYER DC: " + noOfPlayers);
+
+					//the case when a player disconnects when other players have reached finish line
+					//and are waiting for the result.
+					//Draw the final scene if this player has finished and so do his connected opponents
+					if(players.length >= noOfPlayers && player.finish == true && GameLoopID != null)//all players has reached finish line
+						{
+
+							clearInterval(GameLoopID);
+							GameLoopID = null;
+							setTimeout(function(){
+							drawResultScence(players);},1000);
+
+					}
+
 					break;
 
 				case "onConnect":	//Map also includes that the player has joined!
@@ -965,6 +979,7 @@ function Client(){
 		}
 	}
 
+	//Function to rank players that have touched finish line
 	var addFinishPlayer = function(playerid, playerduration){
 		var aFinishPlayer = {playerid:playerid,gameDuration:playerduration};
 			if(players.indexOf(aFinishPlayer) == -1){
@@ -984,7 +999,7 @@ function Client(){
 								break;
 							}
 						}
-						if(players.length >= noOfPlayers && player.finish == true)//all players has reached finish line
+						if(players.length >= noOfPlayers && player.finish == true && GameLoopID != null)//all players has reached finish line
 						{
 
 							clearInterval(GameLoopID);

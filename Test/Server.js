@@ -27,7 +27,7 @@ function Server(PORT) {
 	var nextAvailSlot;
 	var numOfPlayers = 0;
 
-	
+
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -186,33 +186,33 @@ function Server(PORT) {
 								break;
 							case "powerup":
 								/*	Server decides on whom will get the powerup based on
-									
+
 									Rules are as follows
 									1) When a server receives a message that the client has received a powerup,
 									2) it will wait for 300ms before giving the powerup to the player.
 									3) During the wait, it will check for any other person trying to get the powerup
-									4) If there are, it will check the time received. 
+									4) If there are, it will check the time received.
 									5) Assume playerA took it at 5500ms and playerB took it at 5400ms.
 										However, playerA command got received by the server first while playerB command received second.
-										This is within the 'safe 300ms' zone. 
+										This is within the 'safe 300ms' zone.
 									6) Server should give playerB the benefit of having the shield as they took it first despite server receiving the taking shield second. [ENSURE FAIRNESS]
-									
+
 								*/
-							
+
 								if(powerups[message.powerupid].taken == false){
 									if(powerups[message.powerupid].touchTime == 0){	//When the powerup has been taken up first, the timer will start and best time/player will be set.
 										powerups[message.powerupid].touchTime = message.pTime - timeDiffPlayers[message.pid];	//Get the time based on the server that it touched the shield.
-										
+
 										powerups[message.powerupid].pid = message.pid;
-										
+
 										setTimeout(function(){
 											powerups[message.powerupid].taken = true;
 											message.pid = powerups[message.powerupid].pid;	//Latest PID update.
 											broadcast(message);	//broadcast to all!
 										},300);	// 300 millisecond
 									}
-									
-									
+
+
 									//If it detects a message where the case is similar to (5), the current player will have priority.
 									else if(powerups[message.powerupid].touchtime > message.pTime - timeDiffPlayers[message.pid]){
 										powerups[message.powerupid].touchTime = message.pTime - timeDiffPlayers[message.pid];
@@ -228,15 +228,15 @@ function Server(PORT) {
 							case "latencyCheck":
 								noOfLatencyCheckPacket++;
 								totalLatencyAfterThreePackets = totalLatencyAfterThreePackets + (Date.now() - message.serverTime);
-								
+
 								//Server - Client time - RTT/2
 								//(If -ve means Client time is SLOWER than Server Time)
 								//(If +ve means Client time is FASTER than Server Time)
 								//Final Server Time: 10:17,	Final Client Time: 10:31	, One Way RTT is 1 minute.
 								//10:30 - 10:17 + 1 minute = +14 minute difference.
-								clientTimeDiffAfterThreePackets = clientTimeDiffAfterThreePackets + 
+								clientTimeDiffAfterThreePackets = clientTimeDiffAfterThreePackets +
 											message.content - Date.now() + ((Date.now() - message.serverTime) / 2) ;
-											
+
 								if(noOfLatencyCheckPacket == 3){	//average of three packets.
 									latencyPlayers[playerID] = totalLatencyAfterThreePackets / 3;
 									timeDiffPlayers[playerID] = clientTimeDiffAfterThreePackets / 3;
@@ -320,7 +320,7 @@ function Server(PORT) {
 			}
 		}
 	};
-	
+
 	var resetServer = function(){
 		readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
 		connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
@@ -332,7 +332,7 @@ function Server(PORT) {
 		for(var i = 0; i < connectedPlayers.length; i++){
 			connectedPlayers[i] = false;
 		}
-		
+
 		sockets = new Object;
 		generatePlatforms();	//Generate the platforms for all players.
 		generatePowerups();	//Generates powerup for all players.
