@@ -6,6 +6,7 @@ require(LIB_PATH + "Powerup.js");
 require(LIB_PATH + "Platform.js");
 
 function Server(PORT) {
+	var that = this;
     var port;         // Game port
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
@@ -22,10 +23,11 @@ function Server(PORT) {
 	var timeDiffPlayers = new Array(maxNoOfPlayers);
 
 	var ready = 0;
-	this.gameStarted;
+	that.gameStarted = false;
 	var nextAvailSlot;
 	var numOfPlayers = 0;
 
+	
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -75,7 +77,6 @@ function Server(PORT) {
             sockets = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			generatePowerups();	//Generates powerup for all players.
-			var that = this;
 			that.gameStarted = false;
 			//---------------------------------------------//
 
@@ -127,7 +128,9 @@ function Server(PORT) {
 						broadcastToRest(message,playerID);
 						numOfPlayers--;
 						console.log("NumberOfPlayers: "+numOfPlayers);
-
+						if(numOfPlayers == 0){
+							resetServer();
+						}
 						// TODO  Close server when all players left the room, need to cancle port binding to socket.
 
 						// if (numOfPlayers < 1){
@@ -317,6 +320,24 @@ function Server(PORT) {
 			}
 		}
 	};
+	
+	var resetServer = function(){
+		readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
+		connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
+		latencyPlayers = new Array(maxNoOfPlayers);
+		timeDiffPlayers = new Array(maxNoOfPlayers);
+
+		ready = 0;
+		numOfPlayers = 0;
+		for(var i = 0; i < connectedPlayers.length; i++){
+			connectedPlayers[i] = false;
+		}
+		
+		sockets = new Object;
+		generatePlatforms();	//Generate the platforms for all players.
+		generatePowerups();	//Generates powerup for all players.
+		that.gameStarted = false;
+	}
 }
 
 
