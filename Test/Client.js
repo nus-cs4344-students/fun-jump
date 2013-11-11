@@ -75,6 +75,7 @@ function Client(){
 					}else{
 						$("#player"+message.pid+"_ready").text("Disconnected");
 					}
+					console.log("PLAYER DC: " + noOfPlayers);
 					break;
 
 				case "onConnect":	//Map also includes that the player has joined!
@@ -110,6 +111,7 @@ function Client(){
 					opponentArr[message.pid] = new Player(message.pid);
 					opponentArr[message.pid].type = "opponent";
 					$("#player"+message.pid+"_ready").text("Not Ready");
+					noOfPlayers++;
 					render();
 					break;
 
@@ -1030,7 +1032,7 @@ function Client(){
 				player.move('left');
 			else if (e.which == 39)
 				player.move('right');
-			if(updateDirection == true)	//Update only once to server!
+			if(updateDirection == true && player.canMove == true)	//Update only once to server!
 				updatePlayerDirection();
 			updateDirection = false;
 
@@ -1044,7 +1046,7 @@ function Client(){
 				return ;
 			else{
 				player.move('stop');
-				if(updateDirection == true)
+				if(updateDirection == true && player.canMove == true)
 					updatePlayerDirection();
 				updateDirection = false;
 				player.stepMove = 0;
@@ -1177,7 +1179,7 @@ function Client(){
 		});
 	}
 	var debugFn = function(x){
-		console.log("Dist " + opponent.distance + " Opponent x " + opponent.x);
+		console.log(noOfPlayers);
 	}
 }
 
