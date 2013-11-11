@@ -9,7 +9,7 @@ function Server(PORT) {
     var port;         // Game port
     var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
-	var totalNoOfPlatforms = 20;
+	var totalNoOfPlatforms = 250;
 	var noOfPlatforms      = 6;
 	var platformDist       = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms          = [];
@@ -24,7 +24,7 @@ function Server(PORT) {
 	var ready = 0;
 	var gameStarted;
 	var nextAvailSlot;
-	var numOfPlayers       = 0;
+	var numOfPlayers = 0;
 
 	var broadcast = function (msg) {
 		var id;
@@ -110,7 +110,7 @@ function Server(PORT) {
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					numOfPlayers++;
 
-					//Get Client RTT & Sync the time (3 packets at 1 second interval diff)
+					//Get Client RTT & Sync the time (3 packets at 1 second interval)
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},1000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},2000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},3000);
@@ -204,7 +204,7 @@ function Server(PORT) {
 											powerups[message.powerupid].taken = true;
 											message.pid = powerups[message.powerupid].pid;	//Latest PID update.
 											broadcast(message);	//broadcast to all!
-										},300);	// 300 milisecond
+										},300);	// 300 millisecond
 									}
 									
 									
