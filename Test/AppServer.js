@@ -26,7 +26,10 @@ app.use(express.static(__dirname));
 var broadcast = function (msg) {
 	var id;
 	for (id in connections) {
-		connections[id].write(JSON.stringify(msg));
+		if (connections[id] != null)
+		{
+			connections[id].write(JSON.stringify(msg));
+		}
 	}
 }
 
@@ -37,6 +40,10 @@ try{
 		//send to new connections
 		console.log("New player connected in AppServer");
 		conn.write(JSON.stringify(players));
+		conn.on("close", function(){
+			connections[connections.indexOf(conn)] = null;
+		});
+
 	});
 
 }catch (e) {

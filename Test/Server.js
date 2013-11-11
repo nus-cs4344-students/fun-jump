@@ -22,7 +22,6 @@ function Server(PORT) {
 	var latencyPlayers = new Array(maxNoOfPlayers);
 	var timeDiffPlayers = new Array(maxNoOfPlayers);
 
-	var ready = 0;
 	that.gameStarted = false;
 	var nextAvailSlot;
 	that.numOfPlayers = 0;
@@ -31,7 +30,7 @@ function Server(PORT) {
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
-			if(id!=null)	//We need this check cause player may disconnect during the game.
+			if(id!=null && sockets[id] != null)	//We need this check cause player may disconnect during the game.
 				sockets[id].write(JSON.stringify(msg));
 		}
 	}
@@ -58,6 +57,17 @@ function Server(PORT) {
 		return null;
 	}
 
+	var numOfReadyPlayer = function(){
+		var total = 0;
+		for (var i = 0; i < maxNoOfPlayers; i++)
+		{
+			if (readyPlayers[i])
+			{
+				total++;
+			}
+		}
+		return total;
+	}
     this.start = function () {
     	console.log("To start a game server on port " + PORT);
         try {
@@ -105,7 +115,7 @@ function Server(PORT) {
 					console.log("New Player ID: " + playerID + " has connected");
 
 					//Server sends the map and the new players id to him
-					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS, ready:ready});
+					unicast(sockets[playerID], {type:"onConnect", content:platforms, contentp:powerups, pid:playerID, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS, ready:readyPlayers});
 					connectedPlayers[playerID] = true;
 
 					//Server sends to everyone else that a new player has joined, together with his playerID
@@ -121,24 +131,20 @@ function Server(PORT) {
 					conn.on('close', function () {
 						console.log("Player ID: " + playerID + " has DISCONNECTED!");
 						connectedPlayers[playerID] = false;	//Remove player from array.
-						sockets[playerID] = null;	//set the socket to be null.
-
-						//Send a player disconnected command ALL clients for them to remove the player.
-						var message = {type:"playerDC", pid:playerID};
-						broadcastToRest(message,playerID);
+						readyPlayers = new Array(maxNoOfPlayers);
+						delete sockets[playerID];	//set the socket to be null.
 						that.numOfPlayers--;
 						console.log("NumberOfPlayers: "+that.numOfPlayers);
 						if(that.numOfPlayers == 0){
 							resetServer();
 						}
-						// TODO  Close server when all players left the room, need to cancle port binding to socket.
-
-						// if (that.numOfPlayers < 1){
-						// 	// sock.destroy();
-						// 	httpServer.close(function(){
-						// 		console.log("Closed server at port: "+PORT);
-						// 	});
-						// }
+						else if (that.numOfPlayers == 1){
+							// that.gameStarted = false;
+						}
+						//Send a player disconnected command ALL clients for them to remove the player.
+						var message = {type:"playerDC", pid:playerID};
+						broadcastToRest(message,playerID);
+						
 						var httpReq = require("http");
 						httpReq.request({
 									host: FunJump.SERVER_NAME,
@@ -177,9 +183,25 @@ function Server(PORT) {
 								break;
 
 							case "ready":
-								ready = ready | (1<<message.pid);
+								readyPlayers[message.pid] = true;
 								broadcastToRest(message, message.pid);
-								if (that.numOfPlayers > 1 && ready == Math.pow(2, that.numOfPlayers)-1){
+								if (that.numOfPlayers > 1 && numOfReadyPlayer() == that.numOfPlayers){
+									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
+									that.gameStarted = true;
+								}
+								break;
+							case "restart":
+								// readyPlayers = new Array(maxNoOfPlayers);
+								readyPlayers[message.pid] = true;
+								console.log("Server restart: ready = "+numOfReadyPlayer());
+								generatePlatforms();	//Generate the platforms for all players.
+								generatePowerups();	//Generates powerup for all players.
+								that.gameStarted = false;
+								connectedPlayers[message.pid] = false;
+								broadcast({type:"onConnect", content:platforms, contentp:powerups, pid:message.pid, otherPlayers:connectedPlayers, maxPlayers:Server.MAXPLAYERS, ready:readyPlayers});
+								connectedPlayers[message.pid] = true;
+								setTimeout(function(){}, 2000);
+								if (that.numOfPlayers > 1 && numOfReadyPlayer() == that.numOfPlayers){
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
 									that.gameStarted = true;
 								}
@@ -327,7 +349,6 @@ function Server(PORT) {
 		latencyPlayers = new Array(maxNoOfPlayers);
 		timeDiffPlayers = new Array(maxNoOfPlayers);
 
-		ready = 0;
 		that.numOfPlayers = 0;
 		for(var i = 0; i < connectedPlayers.length; i++){
 			connectedPlayers[i] = false;

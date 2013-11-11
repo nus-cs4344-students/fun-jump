@@ -15,6 +15,7 @@ function Client(){
 	var connected          = false;
 	var moveCount          = 0;
 	var gameStartAtTime; //the time that player starts moving
+	var gameStarted        = false
 
 	//For platform / powerups
 	var totalNoOfPlatforms = 20;
@@ -26,11 +27,11 @@ function Client(){
 
 	//For global objects
 	var debugTxt;
-	var convMaxXThres = 50;
-	var	convMaxYThres = 50;
-	var noOfPlayers = 0;
-	var GameLoopID = null;
-	var players = [];
+	var convMaxXThres      = 50;
+	var	convMaxYThres      = 50;
+	var noOfPlayers        = 0;
+	var GameLoopID         = null;
+	var players            = [];
 
 	//Sound
 	var fireSound          = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
@@ -50,6 +51,23 @@ function Client(){
 		}*/
     }
 
+    var gameEnd	= function(){
+    	clearInterval(GameLoopID);
+		GameLoopID = null;
+
+    	$(".ui-btn-text").text("Restart");	
+    	$(".ui-btn").css("background", "#00CC00");	
+    	$(".ui-btn").css("display", "block");	//Hide the button .	
+
+    	$("#startBtn").tap(function(){
+			$(".ui-btn-text").text("Waiting...");
+			$(".ui-btn").css("background", "#FF0000");
+			// $(".ui-btn").css("display", "none");	//Hide the button .
+			$(this).addClass('ui-disabled');
+			client.sendToServer({type:"restart", pid:client.pid});
+			
+		});
+    }
     var initNetwork = function() {
         // Attempts to connect to game server
         try {
@@ -70,10 +88,16 @@ function Client(){
 					noOfPlayers --;
 					opponentArr[message.pid] = null;
 					console.log(player.start+"Player "+message.pid+" disconnected");
-					if(playerStopped){
-						$("#player"+message.pid+"_ready").text("Empty Slot");
-					}else{
+					if(gameStarted){
 						$("#player"+message.pid+"_ready").text("Disconnected");
+						//If only One player left!
+						if ( noOfPlayers == 1)
+						{
+							$("#player"+that.pid+"_ready").text("Winner!");
+							gameEnd();
+						}
+					}else{
+						$("#player"+message.pid+"_ready").text("Empty Slot");
 					}
 					console.log("PLAYER DC: " + noOfPlayers);
 
@@ -102,15 +126,17 @@ function Client(){
 					$("#player"+message.pid+"_ready").text("You");
 					var connectedPlayers = message.otherPlayers;
 					opponentArr = new Array(message.maxPlayers);
-					for(var i = 0; i < message.maxPlayers; i ++){
+					for(var i = 0; i < message.maxPlayers; i++){
 						if(connectedPlayers[i] == true){
 							opponentArr[i] = new Player(i);
 							opponentArr[i].type = "opponent";
 							noOfPlayers++;
-							if((message.ready & (1<<i)) == 1){
-								$("#player"+i+"_ready").text("Ready");
-							}else{
-								$("#player"+i+"_ready").text("Not Ready");
+							console.log("client ready: "+message.ready+"  "+i);
+							if (message.ready[i]){
+								$("#player"+i+"_ready").text("Ready");	
+							}
+							else{
+								$("#player"+i+"_ready").text("Not Ready");	
 							}
 						}
 					}
@@ -220,10 +246,14 @@ function Client(){
 					//Game starts so the player can move now
 					//Record the time the player starts moving
 					if(player != null){
-						player.canMove = true;
+						player.canMove  = true;
 						gameStartAtTime = Date.now();
+						gameStarted = true
 					}
 
+					//Remove start button.
+					$(".ui-btn").css("display", "none");	//Hide the button .
+					
 					GameLoopID = setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
 
