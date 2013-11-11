@@ -11,6 +11,9 @@
 		<script type="text/javascript" src="./FunJump.js"></script>
 		<script type="text/javascript" src="./sockjs-0.3.min.js"></script>
 		<script type="text/javascript">
+			if (location.port != "4344"){
+				window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";
+			}
 			$(document).on('pageinit', function(){
 				$("#manuScreen").height(FunJump.HEIGHT);
 				$("#manuScreen").width(FunJump.WIDTH);

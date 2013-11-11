@@ -25,7 +25,7 @@ function Server(PORT) {
 	var ready = 0;
 	that.gameStarted = false;
 	var nextAvailSlot;
-	var numOfPlayers = 0;
+	that.numOfPlayers = 0;
 
 
 	var broadcast = function (msg) {
@@ -110,7 +110,7 @@ function Server(PORT) {
 
 					//Server sends to everyone else that a new player has joined, together with his playerID
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
-					numOfPlayers++;
+					that.numOfPlayers++;
 
 					//Get Client RTT & Sync the time (3 packets at 1 second interval)
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},1000);
@@ -126,14 +126,14 @@ function Server(PORT) {
 						//Send a player disconnected command ALL clients for them to remove the player.
 						var message = {type:"playerDC", pid:playerID};
 						broadcastToRest(message,playerID);
-						numOfPlayers--;
-						console.log("NumberOfPlayers: "+numOfPlayers);
-						if(numOfPlayers == 0){
+						that.numOfPlayers--;
+						console.log("NumberOfPlayers: "+that.numOfPlayers);
+						if(that.numOfPlayers == 0){
 							resetServer();
 						}
 						// TODO  Close server when all players left the room, need to cancle port binding to socket.
 
-						// if (numOfPlayers < 1){
+						// if (that.numOfPlayers < 1){
 						// 	// sock.destroy();
 						// 	httpServer.close(function(){
 						// 		console.log("Closed server at port: "+PORT);
@@ -179,7 +179,7 @@ function Server(PORT) {
 							case "ready":
 								ready = ready | (1<<message.pid);
 								broadcastToRest(message, message.pid);
-								if (numOfPlayers > 1 && ready == Math.pow(2, numOfPlayers)-1){
+								if (that.numOfPlayers > 1 && ready == Math.pow(2, that.numOfPlayers)-1){
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
 									that.gameStarted = true;
 								}
@@ -328,7 +328,7 @@ function Server(PORT) {
 		timeDiffPlayers = new Array(maxNoOfPlayers);
 
 		ready = 0;
-		numOfPlayers = 0;
+		that.numOfPlayers = 0;
 		for(var i = 0; i < connectedPlayers.length; i++){
 			connectedPlayers[i] = false;
 		}

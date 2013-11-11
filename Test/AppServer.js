@@ -54,14 +54,14 @@ app.get("/join/:rmID", function(req, res){
 	if (gameServers[roomID] == null){
 		gameServers[roomID] = new Server(gamePorts[roomID]);
 		gameServers[roomID].start();
-		players[roomID]=0;
+		// players[roomID]=0;
 	}
 	console.log(gameServers[roomID].gameStarted);
 	if (!gameServers[roomID].gameStarted){
-		players[roomID]++;
+		// players[roomID]++;
 		res.send({	status:'ok', 
 					port:gamePorts[roomID],
-					numOfPlayers:players[roomID]
+					numOfPlayers:gameServers[roomID].numOfPlayers
 				});
 		broadcast(players);
 	}else{
