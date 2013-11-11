@@ -58,10 +58,10 @@ app.get("/join/:rmID", function(req, res){
 	}
 	console.log(gameServers[roomID].gameStarted);
 	if (!gameServers[roomID].gameStarted){
-		// players[roomID]++;
+		players[roomID] = gameServers[roomID].numOfPlayers+1;
 		res.send({	status:'ok', 
 					port:gamePorts[roomID],
-					numOfPlayers:gameServers[roomID].numOfPlayers
+					numOfPlayers:gameServers[roomID].numOfPlayers+1
 				});
 		broadcast(players);
 	}else{
@@ -84,18 +84,18 @@ app.get("/removeuser/:rmPort", function(req, res){
 			break
 		}
 	}
-	players[roomID]--;
+	players[roomID] = gameServers[roomID].numOfPlayers;
 	// if (players[roomID]==0){
 	// 	gameServers[roomID] = null;
 	// }
 	broadcast(players);
 });
 
-app.get("/numOfPlayers", function(req, res){
+app.get("/:rmID", function(req, res){
 	var roomID = req.params.rmID;
 	res.send(
 			{
-				numOfPlayers:players
+				numOfPlayers:gameServers[roomID].numOfPlayers
 			}
 
 		);
