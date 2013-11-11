@@ -22,7 +22,7 @@ function Server(PORT) {
 	var timeDiffPlayers = new Array(maxNoOfPlayers);
 
 	var ready = 0;
-	var gameStarted;
+	this.gameStarted;
 	var nextAvailSlot;
 	var numOfPlayers = 0;
 
@@ -75,7 +75,7 @@ function Server(PORT) {
             sockets = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			generatePowerups();	//Generates powerup for all players.
-			gameStarted = false;
+			this.gameStarted = false;
 			//---------------------------------------------//
 
 
@@ -93,7 +93,7 @@ function Server(PORT) {
 				}
 
 				//Game has started! No one else can join.
-				else if(gameStarted == true){
+				else if(this.gameStarted == true){
 					unicast(conn, {type:"error", content:"Game has started! You are not able to join it."});
 					return ;
 				}
