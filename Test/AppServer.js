@@ -51,17 +51,24 @@ app.get("/", function(req, res) {
 app.get("/join/:rmID", function(req, res){
 	var roomID = req.params.rmID;
 	console.log("request to join room "+roomID + "  " + gamePorts[roomID]);
-	if (gameServers[roomID] == null || !gameServers[roomID].gameStarted){
+	if (gameServers[roomID] == null){
 		gameServers[roomID] = new Server(gamePorts[roomID]);
 		gameServers[roomID].start();
 		players[roomID]=0;
+	}
+	console.log(gameServers[roomID].gameStarted);
+	if (!gameServers[roomID].gameStarted){
 		players[roomID]++;
 		res.send({	status:'ok', 
 					port:gamePorts[roomID],
 					numOfPlayers:players[roomID]
 				});
 		broadcast(players);
+	}else{
+		console.log("Gamestarted");
+		res.send(500, {status: "started"});
 	}
+
 
 });
 

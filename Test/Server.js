@@ -75,7 +75,8 @@ function Server(PORT) {
             sockets = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			generatePowerups();	//Generates powerup for all players.
-			this.gameStarted = false;
+			var that = this;
+			that.gameStarted = false;
 			//---------------------------------------------//
 
 
@@ -93,7 +94,7 @@ function Server(PORT) {
 				}
 
 				//Game has started! No one else can join.
-				else if(this.gameStarted == true){
+				else if(that.gameStarted == true){
 					unicast(conn, {type:"error", content:"Game has started! You are not able to join it."});
 					return ;
 				}
@@ -176,7 +177,8 @@ function Server(PORT) {
 								ready = ready | (1<<message.pid);
 								broadcastToRest(message, message.pid);
 								if (numOfPlayers > 1 && ready == Math.pow(2, numOfPlayers)-1){
-									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000})
+									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
+									that.gameStarted = true;
 								}
 								break;
 							case "powerup":
