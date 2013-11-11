@@ -24,13 +24,16 @@
 				$("#menuScreen").width(FunJump.WIDTH+120);
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
 				$(".ui-btn-text").css("color", "#00CC00");
-
+				$(".ui-btn").css("display", "none");	//Hide the button .
 
 				//Testing...
-
+				setTimeout(function(){
+					$(".ui-btn").css("display", "block");	//Hide the button .
+				}, 2000);	
 				$("#startBtn").tap(function(){
 					$(".ui-btn-text").text("Ready");
 					$(".ui-btn-text").css("color", "#FF00FF");
+					$(".ui-btn").css("display", "none");	//Hide the button .
 					$(this).addClass('ui-disabled');
 					client.sendToServer({type:"ready", pid:client.pid});
 					
