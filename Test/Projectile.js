@@ -12,7 +12,7 @@ function Projectile(x, y, trajectory, size, color, speed, distance) {
     that.travelled = 0; // distance travelled along x-axis
 
     that.updatePos = function(mod){
-    	if(that.landedTimer <= 0){
+    	if(that.landedTimer <= 0){//the projectile is still moving
 	    	that.travelled += Math.abs(that.trajectory.x * that.speed * mod);
 	    	 if(that.travelled >= that.trajectory.distanceX){
 		     	that.landedTimer++;
@@ -27,7 +27,7 @@ function Projectile(x, y, trajectory, size, color, speed, distance) {
 			    that.distance -= that.trajectory.y * that.speed * mod;
 			}
 	    }
-	    else{
+	    else{//the projectile has landed
 	    	that.landedTimer++;
 	    }
     }
