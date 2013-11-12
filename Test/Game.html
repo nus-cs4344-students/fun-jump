@@ -26,11 +26,14 @@
 					window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
 				}
 				$("#menuScreen").height(FunJump.HEIGHT);
-				$("#menuScreen").width(FunJump.WIDTH+120);
+				$("#menuScreen").width(FunJump.WIDTH);
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
 				$(".ui-btn").css("background", "#00CC00");
 				$(".ui-btn").css("display", "none");	//Hide the button .
-
+				$('.ui-block-a').css("color","pink")
+				$('.ui-block-b').css("color","green")
+				$('.ui-block-c').css("color","yellow")
+				$('.ui-block-d').css("color","red")
 				//Testing...
 				setTimeout(function(){
 					$(".ui-btn").css("display", "block");	//Hide the button .
@@ -61,33 +64,29 @@
 			<header data-role="header">
                <h1>Fun Jump</h1>
          	</header>
-         	<div class="ui-grid-a">
-         		<div class="ui-block-a" style="width:500px">
+         		<div style="width:500px">
 	         		<canvas id = "mycanvas">
 					</canvas>
 				</div>
-				<div id="sidebar" class="ui-block-b" style="width:120px">
-					<ul data-role="listview" data-inset="true" data-dividertheme="a"> 
-         	            <li>
-         	            	Player 1: 
-         	            	<span id="player0_ready">Empty Slot</span>
-         	            </li> 
-         	            <li>
-         	            	Player 2: 
-         	            	<span id="player1_ready">Empty Slot</span>
-         	            </li> 
-         	            <li>
-         	            	Player 3: 
-         	            	<span id="player2_ready">Empty Slot</span>
-         	            </li> 
-         	            <li>
-         	            	Player 4: 
-         	            	<span id="player3_ready">Empty Slot</span>
-         	            </li> 
-         	      </ul> 
-					<button id="startBtn" >Ready</button>
+				<div class="ui-grid-c">
+					<div class="ui-block-a">
+						Player 1:</br>  
+         	            <span id="player0_ready">Empty Slot</span>
+					</div>
+					<div class="ui-block-b">
+						Player 2:</br>  
+         	            <span id="player1_ready">Empty Slot</span>
+					</div>
+					<div class="ui-block-c">
+						Player 3:</br> 
+         	            <span id="player2_ready">Empty Slot</span>
+					</div>
+					<div class="ui-block-d">
+						Player 4:</br> 
+         	            <span id="player3_ready">Empty Slot</span>
+					</div>
 				</div>
-			</div>
+				<button id="startBtn" >Ready</button>
 			<p id="serverMsg"></p>
 		<!--<p id="clientMsg"></p>-->
         	<div id="footer" data-role="footer">
