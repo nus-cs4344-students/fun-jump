@@ -44,11 +44,13 @@
 				try{
 					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
 					socket.onmessage = function (e) {
-                	var nums = JSON.parse(e.data);
-                	for (var i = 0; i < nums.length; i++){
-						$("#rm"+i+"_players").text(nums[i]);
-					}
-                };
+
+                		var nums = JSON.parse(e.data);
+                		console.log(nums);
+                		for (var i = 0; i < nums.length; i++){
+							$("#rm"+i+"_players").text(nums[i]);
+						}
+                	};
 				}catch (e) {
 					console.log("Cannot listen to " + port);
 					console.log("Error: " + e);
@@ -65,6 +67,7 @@
 		    			window.location.href = "http://"+FunJump.SERVER_NAME+":"+data.port+"/Game.html";
 		    		},
 		    		error:function(data){
+		    			console.log(data);
 		    			alert("Game started, you cannot join!");
 		    		},
 		    		dataType: "json"

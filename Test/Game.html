@@ -19,10 +19,12 @@
 		<script type="text/javascript" src="./FunJump.js"></script>
 		<script type="text/javascript" src="./Client.js"></script>
 		<script type="text/javascript">
-			if(document.referrer == ""){
-				window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
-			}
 			$(document).on('pageinit', function(){
+				console.log(document.referrer);
+				if(document.referrer != "http://"+FunJump.SERVER_NAME+":4344/index.html" && 
+					document.referrer != "http://"+FunJump.SERVER_NAME+":4344/"){
+					window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
+				}
 				$("#menuScreen").height(FunJump.HEIGHT);
 				$("#menuScreen").width(FunJump.WIDTH+120);
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);

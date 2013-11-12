@@ -17,14 +17,14 @@ function Server(PORT) {
 	var powerups           = [];
 	var maxNoOfPlayers     = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
 
-	var readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
-	var connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
-	var latencyPlayers = new Array(maxNoOfPlayers);
-	var timeDiffPlayers = new Array(maxNoOfPlayers);
+	var readyPlayers       = new Array(maxNoOfPlayers);	//Game state for ready.
+	var connectedPlayers   = new Array(maxNoOfPlayers);	//Game state for connected players
+	var latencyPlayers     = new Array(maxNoOfPlayers);
+	var timeDiffPlayers    = new Array(maxNoOfPlayers);
 
-	that.gameStarted = false;
+	that.gameStarted       = false;
 	var nextAvailSlot;
-	that.numOfPlayers = 0;
+	that.numOfPlayers      = 0;
 
 
 	var broadcast = function (msg) {
@@ -45,7 +45,10 @@ function Server(PORT) {
 	}
 
     var unicast = function (socket, msg) {
-        socket.write(JSON.stringify(msg));
+    	//socket may be null, in timeout function as players may disconnect during that period.
+    	if(socket!=null){
+    		socket.write(JSON.stringify(msg));	
+    	}
     }
 
 	//Function to find the next available slot.
@@ -68,36 +71,46 @@ function Server(PORT) {
 		}
 		return total;
 	}
+	var reportToAppServer = function(){
+		var request = require('request');
+		request({
+			uri: "http://"+FunJump.SERVER_NAME+":"+FunJump.PORT+"/report",
+			method:"POST",
+			json: {port:PORT, started:that.gameStarted, numofplayer:that.numOfPlayers}
+			},
+			function(error, response, body){
+		});
+	}
     this.start = function () {
     	console.log("To start a game server on port " + PORT);
         try {
-            var express = require('express');
-            var http = require('http');
-            var sockjs = require('sockjs');
-            var sock = sockjs.createServer();
-            var app = express();
-            var httpServer = http.createServer(app);
+			var express         = require('express');
+			var http            = require('http');
+			var sockjs          = require('sockjs');
+			var sock            = sockjs.createServer();
+			var app             = express();
+			var httpServer      = http.createServer(app);
 
             //----------------INITIALIZING-----------------//
 			for(var i = 0; i < connectedPlayers.length; i++){
 				connectedPlayers[i] = false;
 			}
 
-            gameInterval = undefined;
-            sockets = new Object;
+			gameInterval        = undefined;
+			sockets             = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			generatePowerups();	//Generates powerup for all players.
-			that.gameStarted = false;
+			that.gameStarted    = false;
 			//---------------------------------------------//
 
 
 			// Upon connection established from a client socket
             sock.on('connection', function (conn) {
-				var playerID = nextAvailSlot();
-				var noOfLatencyCheckPacket = 0;
-				var totalLatencyAfterThreePackets = 0;
+				var playerID                        = nextAvailSlot();
+				var noOfLatencyCheckPacket          = 0;
+				var totalLatencyAfterThreePackets   = 0;
 				var clientTimeDiffAfterThreePackets = 0;
-				var initialServerTime = 0;
+				var initialServerTime               = 0;
 				//FULL! cannot join! Appserver should do the checking but just in case...
 				if(playerID == null){
 					unicast(conn, {type:"error", content:"Game is full!"});
@@ -121,8 +134,9 @@ function Server(PORT) {
 					//Server sends to everyone else that a new player has joined, together with his playerID
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					that.numOfPlayers++;
-
+					reportToAppServer();
 					//Get Client RTT & Sync the time (3 packets at 1 second interval)
+					//This may cause problem since client may disconnect with in 3 seconds!!!
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},1000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},2000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},3000);
@@ -145,14 +159,7 @@ function Server(PORT) {
 						var message = {type:"playerDC", pid:playerID};
 						broadcastToRest(message,playerID);
 						
-						var httpReq = require("http");
-						httpReq.request({
-									host: FunJump.SERVER_NAME,
-									port: FunJump.PORT,
-									path: "/removeuser/"+PORT,
-									method: "GET"
-								},
-									function(res){}).end();
+						reportToAppServer();
 
 					});
 
@@ -189,6 +196,7 @@ function Server(PORT) {
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
 									that.gameStarted = true;
 								}
+								reportToAppServer();
 								break;
 							case "restart":
 								// readyPlayers = new Array(maxNoOfPlayers);
@@ -205,6 +213,7 @@ function Server(PORT) {
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
 									that.gameStarted = true;
 								}
+								reportToAppServer();
 								break;
 							case "powerup":
 								/*	Server decides on whom will get the powerup based on
@@ -265,6 +274,9 @@ function Server(PORT) {
 									//console.log("3 packets captured.AVE RTT LATENCY IS " + latencyPlayers[playerID] + " " + timeDiffPlayers[playerID]);
 								}
 								break;
+							case "ping":
+								console.log("Ping from player "+message.pid);
+								break;
 							default:
 								console.log("Unhandled " + message.type);
 						}
@@ -274,7 +286,11 @@ function Server(PORT) {
 
             // Standard code to starts the Pong server and listen
             // for connection
-            sock.installHandlers(httpServer, {prefix:'/FunJump'});
+            sock.installHandlers(httpServer, {prefix:'/FunJump',
+        									log:function(s,m){
+        										console.log(m);
+        									},
+        									disconnect_delay:120000});
             httpServer.listen(PORT, '0.0.0.0');
             app.use(express.static(__dirname));
 
@@ -344,20 +360,19 @@ function Server(PORT) {
 	};
 
 	var resetServer = function(){
-		readyPlayers = new Array(maxNoOfPlayers);	//Game state for ready.
-		connectedPlayers = new Array(maxNoOfPlayers);	//Game state for connected players
-		latencyPlayers = new Array(maxNoOfPlayers);
-		timeDiffPlayers = new Array(maxNoOfPlayers);
+		readyPlayers      = new Array(maxNoOfPlayers);	//Game state for ready.
+		connectedPlayers  = new Array(maxNoOfPlayers);	//Game state for connected players
+		latencyPlayers    = new Array(maxNoOfPlayers);
+		timeDiffPlayers   = new Array(maxNoOfPlayers);
 
 		that.numOfPlayers = 0;
+		sockets           = new Object;
+		generatePlatforms();	//Generate the platforms for all players.
+		generatePowerups();	//Generates powerup for all players.
+		that.gameStarted  = false;
 		for(var i = 0; i < connectedPlayers.length; i++){
 			connectedPlayers[i] = false;
 		}
-
-		sockets = new Object;
-		generatePlatforms();	//Generate the platforms for all players.
-		generatePowerups();	//Generates powerup for all players.
-		that.gameStarted = false;
 	}
 }
 

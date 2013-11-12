@@ -282,6 +282,11 @@ function Client(){
         }
     }
 
+    //This function to ping server to state it is alive, since server closes the connection if not hearing from client for 5 seconds
+	var pingServer = function(){
+		sendToServer({type:"ping", pid:player.id});
+	}
+
 	//This function draws the result scence.
 	//Called only once when the client receives message "result" from server
 	var drawResultScence = function(){
@@ -524,6 +529,7 @@ function Client(){
 		initGUI();	//Initialize listeners and context etc.
         imageRepository = new ImageRepository();	//Initialize images
         checkImgLoaded();
+        setInterval(pingServer, 4000);
     }
 
     var checkImgLoaded = function(){

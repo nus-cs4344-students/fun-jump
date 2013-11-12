@@ -22,7 +22,14 @@ sock.installHandlers(httpServer, {prefix:"/AppServer"});
 httpServer.listen(port, "0.0.0.0");
 
 app.use(express.static(__dirname));
-
+app.use(express.bodyParser());
+for (var i = 0; i < gamePorts.length; i++){
+	if (gameServers[i] == null){
+		gameServers[i] = new Server(gamePorts[i]);
+		gameServers[i].start();
+		// players[roomID]=0;
+	}
+}
 var broadcast = function (msg) {
 	var id;
 	for (id in connections) {
@@ -41,7 +48,7 @@ try{
 		console.log("New player connected in AppServer");
 		conn.write(JSON.stringify(players));
 		conn.on("close", function(){
-			connections[connections.indexOf(conn)] = null;
+			connections.pop(conn);
 		});
 
 	});
@@ -50,10 +57,12 @@ try{
 	console.log("Cannot listen to " + port);
 	console.log("Error: " + e);
 }
-    
-app.get("/", function(req, res) {
-  res.sendfile(__dirname+"/index.html");
-});
+
+
+
+// app.get("/", function(req, res) {
+  // res.sendfile(__dirname+"/index.html");
+// });
 
 app.get("/join/:rmID", function(req, res){
 	var roomID = req.params.rmID;
@@ -108,15 +117,21 @@ app.get("/:rmID", function(req, res){
 		);
 });
 
+
+app.post("/report", function(req, res){
+	console.log(req.body);
+	var index = gamePorts.indexOf(parseInt(req.body.port));
+	console.log(index+" "+req.body.numofplayer);
+	players[index] = parseInt(req.body.numofplayer);
+	broadcast(players);
+	res.send(200, JSON.stringify(players));
+});
+// app.listen(port, function() {
+//    console.log("Listening on " + port);
+//  });
+
  /* serves all the static files */
  app.get(/^(.+)$/, function(req, res){ 
      console.log('static file request : ' + req.params);
      res.sendfile( __dirname + req.params[0]); 
  });
-
-// app.listen(port, function() {
-//    console.log("Listening on " + port);
-//  });
-
-
-
