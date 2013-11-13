@@ -1,3 +1,4 @@
+//this class is for computing x and y components of projectile speed
 function Trajectory(startX, startY, endX, endY, iniDistance) {
     this.length = Math.sqrt(Math.pow((endX - startX), 2) + Math.pow((endY - startY), 2));
     this.x = (endX - startX) / this.length;

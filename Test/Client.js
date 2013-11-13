@@ -54,9 +54,9 @@ function Client(){
     	clearInterval(GameLoopID);
 		GameLoopID = null;
 
-    	$(".ui-btn-text").text("Restart");	
-    	$(".ui-btn").css("background", "#00CC00");	
-    	$(".ui-btn").css("display", "block");	//Hide the button .	
+    	$(".ui-btn-text").text("Restart");
+    	$(".ui-btn").css("background", "#00CC00");
+    	$(".ui-btn").css("display", "block");	//Hide the button .
 
     	$("#startBtn").tap(function(){
 			$(".ui-btn-text").text("Waiting...");
@@ -64,7 +64,7 @@ function Client(){
 			// $(".ui-btn").css("display", "none");	//Hide the button .
 			$(this).addClass('ui-disabled');
 			client.sendToServer({type:"restart", pid:client.pid});
-			
+
 		});
     }
     var initNetwork = function() {
@@ -132,10 +132,10 @@ function Client(){
 							noOfPlayers++;
 							console.log("client ready: "+message.ready+"  "+i);
 							if (message.ready[i]){
-								$("#player"+i+"_ready").text("Ready");	
+								$("#player"+i+"_ready").text("Ready");
 							}
 							else{
-								$("#player"+i+"_ready").text("Not Ready");	
+								$("#player"+i+"_ready").text("Not Ready");
 							}
 						}
 					}
@@ -252,7 +252,7 @@ function Client(){
 
 					//Remove start button.
 					$(".ui-btn").css("display", "none");	//Hide the button .
-					
+
 					GameLoopID = setInterval(function(){GameLoop();},1000/FunJump.FRAME_RATE);
 					break;
 
@@ -338,7 +338,7 @@ function Client(){
 				default:
 					console.log("invalid pid: "+i);
 			}
-			//draw result
+			//print game duration of each player
 			if(players[i].playerid == player.id){
 				 	context.fillText("You :   "+players[i].gameDuration/1000+" s",textSX,textSY+30*i);
 			}
@@ -348,6 +348,7 @@ function Client(){
 		}
 	}
 
+	//function to draw players in the final scence
 	var drawPlayer = function(context, playerid, playerx, playery){
 
 		switch(playerid){
@@ -355,7 +356,7 @@ function Client(){
 				case 0:
 					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 1:	//@ Kathy, why is this so complicated compared to the rest??
+				case 1:
 					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
@@ -531,6 +532,7 @@ function Client(){
         setInterval(pingServer, 4000);
     }
 
+	//function to check if all images have been loaded
     var checkImgLoaded = function(){
     	if(imageRepository.allImgLoaded === false || connected == false)
     		setTimeout(checkImgLoaded, 500);
@@ -564,7 +566,7 @@ function Client(){
 							projectile.y += player.jumpSpeed;
 						});
 				}
-
+				//draw opponents' projectiles
 				opponent.projectiles.forEach(function(projectile,ind){
 					//Draw the bullet if it is within the player's screen
 					if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -626,7 +628,7 @@ function Client(){
 		}
 		drawPlayerIcon(context, player, progressX, progressY);
 	}
-
+	//Draw indicator of each player
 	var drawPlayerIcon = function(context, player, progressx, progressy){
 
 		var difference = ImageRepository.PROGRESS_HEIGHT-ImageRepository.PROGRESS_LENGTH;
@@ -637,20 +639,16 @@ function Client(){
 		switch(player.id){
 
 		case 0:
-			//context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 			context.fillStyle = 'pink';
 
 			break;
 		case 1:
-			//context.drawImage(imageRepository.normalguya, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 			context.fillStyle = 'green';
 			break;
 		case 2:
-			//context.drawImage(imageRepository.angela, playerx, playery, Player.WIDTH, Player.HEIGHT);
 			context.fillStyle = 'yellow';
 			break;
 		case 3:
-			//context.drawImage(imageRepository.evila, playerx, playery, Player.WIDTH, Player.HEIGHT);
 			context.fillStyle = 'red';
 			break;
 		default:
@@ -661,6 +659,7 @@ function Client(){
 		context.fillRect(progressx, positionY, ImageRepository.PROGRESS_WIDTH, 5);
 	}
 
+	//function to draw each player during gameplay
 	var renderPlayer = function(context, playerid, playerx, playery, playerIsHit, playerShoot, player){
 		var condition = playerShoot||playerIsHit;
 
@@ -715,7 +714,8 @@ function Client(){
 			context.drawImage(imageRepository.splash, playerx - (Projectile.SPLASH_SIZE - Player.WIDTH)/2, playery - (Projectile.SPLASH_SIZE - Player.HEIGHT)/2, Projectile.SPLASH_SIZE, Projectile.SPLASH_SIZE);
 		}
 
-		if(player.canMove == false && playerIsHit == false && player.finish == false && player.start==false){// player falls down to bottom
+		//render fire animation when player falls down to bottom
+		if(player.canMove == false && playerIsHit == false && player.finish == false && player.start==false){
 			var aNum = Math.floor((Math.random()*3)+1);// generate a number between 1 and 3
 
 			switch(aNum){
@@ -883,6 +883,7 @@ function Client(){
 		render();
 	};
 
+	//Get the nearest platform so that a player can return to when the player recovers from being burnt
 	var getNearestPlatform = function(player){
 
 		//GetNearestPlatform
