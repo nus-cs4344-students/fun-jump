@@ -67,6 +67,26 @@ function Client(){
 
 		});
     }
+
+    //To detect user platform, code from http://stackoverflow.com/questions/12606245/detect-if-browser-is-running-on-an-android-or-ios-device
+	var isMobile = {
+	    Android: function() {
+	        return navigator.userAgent.match(/Android/i) ? true : false;
+	    },
+	    BlackBerry: function() {
+	        return navigator.userAgent.match(/BlackBerry/i) ? true : false;
+	    },
+	    iOS: function() {
+	        return navigator.userAgent.match(/iPhone|iPad|iPod/i) ? true : false;
+	    },
+	    Windows: function() {
+	        return navigator.userAgent.match(/IEMobile/i) ? true : false;
+	    },
+	    any: function() {
+	        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows());
+	    }
+	};
+
     var initNetwork = function() {
         // Attempts to connect to game server
         try {
@@ -84,7 +104,7 @@ function Client(){
 					break;
 
 				case "playerDC":	//Player has disconnected....
-					noOfPlayers --;
+					noOfPlayers = message.numOfPlayers;
 					opponentArr[message.pid] = null;
 					console.log(player.start+"Player "+message.pid+" disconnected");
 					if(gameStarted){
@@ -498,30 +518,16 @@ function Client(){
 	}
 
 	var onDeviceMotion = function(e) {
-        var vx = e.accelerationIncludingGravity.x;
+        var vx;
+        if (isMobile.iOS()){
+        	vx = e.accelerationIncludingGravity.x;	
+        } else if (isMobile.Android()){
+        	vx = -e.accelerationIncludingGravity.x;	
+        }else {
+        	//Not tested, so assume to be same as iOS
+        	vx = e.accelerationIncludingGravity.x;	
+        }
         player.accelerate(vx);
-   //      if ( vx > 1) //Move right
-   //      {
-   //      	if(player.canMove == true){
-			// 	playerStopped = false;
-			// 	player.move('right');
-			// }
-
-   //      }else if(vx < -1) //Move left
-   //      {
-   //          // $("#serverMsg").text("onDeviceMotion"+vx);
-   //          if(player.canMove == true){
-			// 	playerStopped = false;
-			// 	player.move('left');
-			// }
-   //      }
-   //      else// stop player
-   //      {
-   //      	if(player.canMove == true){
-			// 	playerStopped = true;
-			// 	stopPlayer(true);
-			// }
-   //      }
     }
 
     this.start = function() {
@@ -925,7 +931,7 @@ function Client(){
 		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
 	        //Play sound:
 	        // fireSound.play();
-	        document.getElementById("fireSound").play(); 
+	        GameSound.play("fireSound"); 
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
@@ -1164,11 +1170,13 @@ function Client(){
 						if (platform.type==0){
 						// 	var jumpSound = new Audio("libs/sounds/Pop-Texavery-8926_hifi.mp3"); // buffers automatically when created
 						// 	jumpSound.play();
-						document.getElementById("bounceSound1").play();
+						// document.getElementById("bounceSound1").play();
+						GameSound.play("bounceSound1"); 
 						}else{
 						// 	var jumpSound = new Audio("libs/sounds/Pop_2-Texavery-8930_hifi.mp3");
 						// 	jumpSound.play();
-						document.getElementById("bounceSound2").play();
+						// document.getElementById("bounceSound2").play();
+						GameSound.play("bounceSound2"); 
 						}
 					}
 			}

@@ -97,15 +97,17 @@ function Player(id) {
 
 	that.accelerate = function(ax){
 		if (that.canMove ){
-			if( ax < -0.4){
+			if( ax < -0.2){
 				that.dirMove = "leff";
-				that.vx = ax * 5;
+				// that.vx = ax * 5;
+				that.vx = that.vx - Player.XACCELERATION/3;
 				that.direction = "left";
 				that.stepMove++;
 			}
-			else if( ax > 0.4){
+			else if( ax > 0.2){
 				that.dirMove = "right";
-				that.vx = ax * 5;
+				// that.vx = ax * 5;
+				that.vx = that.vx + Player.XACCELERATION/3;
 				that.direction = "right";
 				that.stepMove++;
 			}
