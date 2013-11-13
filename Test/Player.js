@@ -97,13 +97,13 @@ function Player(id) {
 
 	that.accelerate = function(ax){
 		if (that.canMove ){
-			if( ax < -1){
+			if( ax < -0.4){
 				that.dirMove = "leff";
 				that.vx = ax * 5;
 				that.direction = "left";
 				that.stepMove++;
 			}
-			else if( ax > 1){
+			else if( ax > 0.4){
 				that.dirMove = "right";
 				that.vx = ax * 5;
 				that.direction = "right";

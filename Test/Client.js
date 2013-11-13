@@ -34,7 +34,6 @@ function Client(){
 	var players            = [];
 
 	//Sound
-	var fireSound          = new Audio("libs/sounds/Laser-SoundBible.com-602495617.mp3"); // buffers automatically when created
 
     var sendToServer = function (msg) {
         socket.send(JSON.stringify(msg));
@@ -924,7 +923,8 @@ function Client(){
 		//and the last fire is greater than the player shoot delay
 		if (Date.now() - player.projectileTimer > Player.SHOOTDELAY && player.canMove == true) {
 	        //Play sound:
-	        fireSound.play();
+	        // fireSound.play();
+	        document.getElementById("fireSound").play(); 
 	        var newproj = new Projectile(
 	                player.x + Player.WIDTH / 2,
 	                player.y + Player.HEIGHT / 2,
@@ -1161,11 +1161,13 @@ function Client(){
 					(player.y + Player.HEIGHT < platform.y + Platform.HEIGHT)){
 						platform.onCollide(player);
 						if (platform.type==0){
-							var jumpSound = new Audio("libs/sounds/Pop-Texavery-8926_hifi.mp3"); // buffers automatically when created
-							jumpSound.play();
+						// 	var jumpSound = new Audio("libs/sounds/Pop-Texavery-8926_hifi.mp3"); // buffers automatically when created
+						// 	jumpSound.play();
+						document.getElementById("bounceSound1").play();
 						}else{
-							var jumpSound = new Audio("libs/sounds/Pop_2-Texavery-8930_hifi.mp3");
-							jumpSound.play();
+						// 	var jumpSound = new Audio("libs/sounds/Pop_2-Texavery-8930_hifi.mp3");
+						// 	jumpSound.play();
+						document.getElementById("bounceSound2").play();
 						}
 					}
 			}

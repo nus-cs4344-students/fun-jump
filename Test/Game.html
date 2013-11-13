@@ -20,11 +20,11 @@
 		<script type="text/javascript" src="./Client.js"></script>
 		<script type="text/javascript">
 			$(document).on('pageinit', function(){
-				console.log(document.referrer);
-				if(document.referrer != "http://"+FunJump.SERVER_NAME+":4344/index.html" && 
-					document.referrer != "http://"+FunJump.SERVER_NAME+":4344/"){
-					window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
-				}
+				console.log(window.location.origin);
+				// if(window.location.origin != "http://"+FunJump.SERVER_NAME+":4344/index.html" && 
+				// 	window.location.origin != "http://"+FunJump.SERVER_NAME+":4344/"){
+				// 	window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
+				// }
 				$("#menuScreen").height(FunJump.HEIGHT);
 				$("#menuScreen").width(FunJump.WIDTH);
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
@@ -93,6 +93,12 @@
         	 <h4>&copy; CS4344 AY1314</h4>
         	</div>
 		</section>
+	<audio src="libs/sounds/Pop-Texavery-8926_hifi.mp3" autostart="false" width="0" height="0" id="bounceSound1" 
+enablejavascript="true">
+	<audio src="libs/sounds/Pop_2-Texavery-8930_hifi.mp3" autostart="false" width="0" height="0" id="bounceSound2" 
+enablejavascript="true">
+	<audio src="libs/sounds/Laser-SoundBible.com-602495617.mp3" autostart="false" width="0" height="0" id="fireSound" 
+enablejavascript="false">
 	</body>
 
 </html>
