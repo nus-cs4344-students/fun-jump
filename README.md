@@ -31,4 +31,3 @@ Open a modern browser and navigate to SERVER_NAME:PORT/index.html, where SERVER_
 ##Known issues
 As different browsers implement HTML5 differently, things are not working perfectly on all platforms.
 * Audio is not played on iOS Safari
-* Audio is not preloaded on Mac Safari, so there is delay in playing

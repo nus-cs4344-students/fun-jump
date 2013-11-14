@@ -8,6 +8,7 @@ var gamePorts   =[4345, 4346, 4347, 4348];
 
 var gameServers =[];
 var players     = [0,0,0,0];
+var gameStarted = [false, false,false, false];
 var connections = [];
 // var sockets     = [];
 
@@ -40,13 +41,20 @@ var broadcast = function (msg) {
 	}
 }
 
+var unicast = function (socket, msg) {
+	//socket may be null, in timeout function as players may disconnect during that period.
+	if(socket!=null){
+    	socket.write(JSON.stringify(msg));	
+    }
+ }
+
 try{
 
 	sock.on('connection', function(conn){
 		connections.push(conn);
 		//send to new connections
 		console.log("New player connected in AppServer");
-		conn.write(JSON.stringify(players));
+		unicast(conn, {type:"report",players:players, started: gameStarted});
 		conn.on("close", function(){
 			connections.pop(conn);
 		});
@@ -79,7 +87,7 @@ app.get("/join/:rmID", function(req, res){
 					port:gamePorts[roomID],
 					numOfPlayers:gameServers[roomID].numOfPlayers+1
 				});
-		broadcast(players);
+		broadcast({type:"report",players:players, started: gameStarted});
 	}else{
 		console.log("Gamestarted");
 		res.send(500, {status: "started"});
@@ -104,7 +112,7 @@ app.get("/removeuser/:rmPort", function(req, res){
 	// if (players[roomID]==0){
 	// 	gameServers[roomID] = null;
 	// }
-	broadcast(players);
+	broadcast({type:"report",players:players, started: gameStarted});
 });
 
 app.get("/:rmID", function(req, res){
@@ -123,7 +131,8 @@ app.post("/report", function(req, res){
 	var index = gamePorts.indexOf(parseInt(req.body.port));
 	console.log(index+" "+req.body.numofplayer);
 	players[index] = parseInt(req.body.numofplayer);
-	broadcast(players);
+	gameStarted[index] = req.body.started; 
+	broadcast({type:"report",players:players, started: gameStarted});
 	res.send(200, JSON.stringify(players));
 });
 // app.listen(port, function() {

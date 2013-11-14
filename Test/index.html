@@ -44,10 +44,26 @@
 				try{
 					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
 					socket.onmessage = function (e) {
-                		var nums = JSON.parse(e.data);
-                		console.log(nums);
-                		for (var i = 0; i < nums.length; i++){
-							$("#rm"+i+"_players").text(nums[i]);
+                		var message = JSON.parse(e.data);
+                		switch (message.type) {
+                			case "report":
+                				var nums = message.players;
+                				console.log(nums);
+                				var started = message.started;
+                				console.log(started);
+                				for (var i = 0; i < nums.length; i++){
+									$("#rm"+i+"_players").text(nums[i]);
+									if(started[i]){
+										$("#rm"+i).parent().hide();
+									}
+									else{
+										$("#rm"+i).parent().show();
+									}
+								}
+								break;
+							default:
+								console.log(message);
+								break;
 						}
                 	};
 				}catch (e) {
