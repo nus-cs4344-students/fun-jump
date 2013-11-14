@@ -131,7 +131,9 @@ function Player(id) {
 						
 				that.direction = "stop";
 			}
-
+			if (Math.abs(that.x) > 40){
+				that.x = that.x/Math.abs(that.x) * 40;
+			}
 			that.x = that.x+that.vx;
 			if(that.x < 0){
 				that.vx = 0;
