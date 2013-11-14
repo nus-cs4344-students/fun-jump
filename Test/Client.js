@@ -835,7 +835,7 @@ function Client(){
 			If the player can move, we should check his jumping, check collision with platform
 			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
 		*/
-		if(player.canMove == true){
+		if(player.canMove == true && player.isHit == false){
 			checkPlayerFall();
 			checkPlatformCollisionForPlayer();
 			checkPowerupCollisionForPlayer();
@@ -871,7 +871,7 @@ function Client(){
 			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
 		*/
 		for(var i = 0; i < opponentArr.length; i ++){
-			if(opponentArr[i]!=null && opponentArr[i].canMove == true){
+			if(opponentArr[i]!=null && opponentArr[i].canMove == true && opponentArr[i].isHit == false){
 				checkOpponentFall(opponentArr[i]);
 				checkCollisionForOpponent(opponentArr[i]);
 				collisionDetect(opponentArr[i]);

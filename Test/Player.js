@@ -100,7 +100,7 @@ function Player(id) {
 	}
 
 	that.accelerate = function(ax){
-		if (that.canMove ){
+		if (that.canMove == true){
 			if( ax < -0.2){
 				that.dirMove = "leff";
 				// that.vx = ax * 5;
