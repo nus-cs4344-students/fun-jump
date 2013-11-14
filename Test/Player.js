@@ -101,14 +101,14 @@ function Player(id) {
 
 	that.accelerate = function(ax){
 		if (that.canMove ){
-			if( ax < -0.2){
+			if( ax < -0.4){
 				that.dirMove = "leff";
 				// that.vx = ax * 5;
 				that.vx = that.vx - Player.XACCELERATION/3;
 				that.direction = "left";
 				that.stepMove++;
 			}
-			else if( ax > 0.2){
+			else if( ax > 0.4){
 				that.dirMove = "right";
 				// that.vx = ax * 5;
 				that.vx = that.vx + Player.XACCELERATION/3;
@@ -118,11 +118,11 @@ function Player(id) {
 			else{
 				if(that.vx > Player.XACCELERATION)
 				{
-					that.vx = that.vx - (Player.XACCELERATION+0.5);
+					that.vx = that.vx - (Player.XACCELERATION/3+0.5);
 				}	
 				else if(that.vx < -Player.XACCELERATION)
 				{
-					that.vx = that.vx + (Player.XACCELERATION+0.5);
+					that.vx = that.vx + (Player.XACCELERATION/3+0.5);
 				}
 				else
 				{
