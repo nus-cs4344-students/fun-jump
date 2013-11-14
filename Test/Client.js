@@ -440,8 +440,9 @@ function Client(){
 		playArea.height = FunJump.HEIGHT;
 
 		window.addEventListener("keydown", function(e) {
+			console.log(e.which);
 			//playerStopped = true cause the last action should be stopped! Otherwise, there can be multiple movements which will be erratic!
-			if((e.which == 37 || e.which == 39) && playerStopped == true){
+			if((e.which == 37 || e.which == 39 || e.which == 65 || e.which == 68) && playerStopped == true){
 				if(player.canMove == true){
 					playerStopped = false;
 					movePlayer(e,true);
@@ -454,7 +455,7 @@ function Client(){
 		}, false);
 
 		window.addEventListener("keyup", function(e) {
-			if (e.which == 37 || e.which == 39){
+			if (e.which == 37 || e.which == 39 || e.which == 65 || e.which == 68){
 				if(player.canMove == true){
 					playerStopped = true;
 					stopPlayer(true);
@@ -1086,9 +1087,9 @@ function Client(){
 
 	var movePlayer = function(e,updateDirection){
 		if(playerStopped == false){
-			if (e.which == 37)
+			if (e.which == 37 || e.which == 65)
 				player.move('left');
-			else if (e.which == 39)
+			else if (e.which == 39 || e.which == 68)
 				player.move('right');
 			if(updateDirection == true && player.canMove == true)	//Update only once to server!
 				updatePlayerDirection();
