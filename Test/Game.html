@@ -5,6 +5,7 @@
 		<link rel="stylesheet" type="text/css" href="./libs/css/jquery.mobile-1.3.2.min.css"/>
 		<script type="text/javascript" src="./libs/js/jquery-1.10.2.min.js"></script>
 		<script type="text/javascript" src="./libs/js/jquery.mobile-1.3.2.min.js"></script>
+		<script type="text/javascript" src="./libs/js/soundjs-0.5.0.min.js"></script>
 		<script type="text/javascript">
 			var global = {}; // For node.js require
 		</script>
@@ -25,6 +26,7 @@
 				// 	window.location.origin != "http://"+FunJump.SERVER_NAME+":4344/"){
 				// 	window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";	
 				// }
+				GameSound.init();
 				$("#menuScreen").height(FunJump.HEIGHT);
 				$("#menuScreen").width(FunJump.WIDTH);
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
@@ -53,7 +55,28 @@
 				$("#menuScreen").css("margin-left", ($(window).width()-$("#menuScreen").width())/2);
 			});
 
-			
+			var GameSound = new function(){
+				this.init = function(){
+					if (!createjs.Sound.initializeDefaultPlugins()) {return;}
+					var audioPath = "./libs/sounds/";
+					var manifest = [
+									{id:"fireSound",src:audioPath+"Laser-SoundBible.com-602495617.mp3"},
+									{id:"bounceSound1", src:audioPath + "Pop-Texavery-8926_hifi.mp3"},
+									{id:"bounceSound2", src:audioPath + "Pop_2-Texavery-8930_hifi.mp3"}
+									];
+
+					createjs.Sound.addEventListener("loadComplete", handleLoad);
+					createjs.Sound.registerManifest(manifest);
+				}
+				
+				function handleLoad(event) {
+					console.log("Sounds loaded");
+				}
+
+				this.play = function(id){
+					createjs.Sound.play(id);
+				}
+			};
 
 
 		</script>
@@ -93,12 +116,12 @@
         	 <h4>&copy; CS4344 AY1314</h4>
         	</div>
 		</section>
-	<audio src="libs/sounds/Pop-Texavery-8926_hifi.mp3" autostart="false" width="0" height="0" id="bounceSound1" 
+<!-- 	<audio src="libs/sounds/Pop-Texavery-8926_hifi.mp3" autostart="false" width="0" height="0" id="bounceSound1" 
 enablejavascript="true">
 	<audio src="libs/sounds/Pop_2-Texavery-8930_hifi.mp3" autostart="false" width="0" height="0" id="bounceSound2" 
 enablejavascript="true">
 	<audio src="libs/sounds/Laser-SoundBible.com-602495617.mp3" autostart="false" width="0" height="0" id="fireSound" 
-enablejavascript="false">
+enablejavascript="false"> -->
 	</body>
 
 </html>

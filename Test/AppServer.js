@@ -74,7 +74,7 @@ app.get("/join/:rmID", function(req, res){
 	}
 	console.log(gameServers[roomID].gameStarted);
 	if (!gameServers[roomID].gameStarted){
-		players[roomID] = gameServers[roomID].numOfPlayers+1;
+		// players[roomID] = gameServers[roomID].numOfPlayers+1;
 		res.send({	status:'ok', 
 					port:gamePorts[roomID],
 					numOfPlayers:gameServers[roomID].numOfPlayers+1

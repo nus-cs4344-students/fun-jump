@@ -156,7 +156,7 @@ function Server(PORT) {
 							// that.gameStarted = false;
 						}
 						//Send a player disconnected command ALL clients for them to remove the player.
-						var message = {type:"playerDC", pid:playerID};
+						var message = {type:"playerDC", pid:playerID, numOfPlayers:that.numOfPlayers};
 						broadcastToRest(message,playerID);
 						
 						reportToAppServer();

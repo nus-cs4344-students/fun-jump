@@ -44,7 +44,6 @@
 				try{
 					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
 					socket.onmessage = function (e) {
-
                 		var nums = JSON.parse(e.data);
                 		console.log(nums);
                 		for (var i = 0; i < nums.length; i++){
@@ -67,8 +66,13 @@
 		    			window.location.href = "http://"+FunJump.SERVER_NAME+":"+data.port+"/Game.html";
 		    		},
 		    		error:function(data){
-		    			console.log(data);
-		    			alert("Game started, you cannot join!");
+		    			if(data.status == 500){
+		    				if (data.responseJSON.status == "started"){
+		    					alert("Game started, you cannot join!");		
+		    				}
+		    			}
+		    			console.log(data.responseJSON);
+		    			
 		    		},
 		    		dataType: "json"
 		    	});
