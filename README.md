@@ -7,7 +7,7 @@ Name                        | Matric Number
 ---                         | ---
 [Hu Qiang](http://qiang.hu) | A0077857J
 Satish 	                    | 
-Kathy                       | 
+Dinh Hoang Phuong Thao      | A0075099R
 
 ## Run the game  
 This is a HTML5 game, with server powered by [NodeJS](http://nodejs.org). So it requires a modern browser and computer with NodeJS and some modules installed.   

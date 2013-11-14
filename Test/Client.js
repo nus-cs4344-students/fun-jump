@@ -31,7 +31,7 @@ function Client(){
 	var	convMaxYThres      = 50;
 	var noOfPlayers        = 0;
 	var GameLoopID         = null;
-	var players            = [];
+	var players            = []; //record which player has finished, for ranking purpose
 
 	//Sound
 
@@ -309,7 +309,7 @@ function Client(){
 	//This function draws the result scence.
 	//Called only once when the client receives message "result" from server
 	var drawResultScence = function(){
-		 console.log("draw result"+noOfPlayers);
+
 		 // Get context
         var context = playArea.getContext("2d");
 
@@ -569,6 +569,9 @@ function Client(){
 			if(opponent != null){
 
 				if(player.screenMove == true){
+						if(opponent.canMove == false){
+							opponent.yForOpp += player.jumpSpeed;
+						}
 						opponent.projectiles.forEach(function(projectile,ind){
 							projectile.y += player.jumpSpeed;
 						});
@@ -586,7 +589,6 @@ function Client(){
 			//Draw the bullet if it is within the player's screen
 			if(projectile.distance+Projectile.SIZE>player.yRel){
 				renderProjectile(context,projectile);
-				console.log(projectile);
 			}
    		});
 
@@ -677,7 +679,7 @@ function Client(){
 				case 0:
 					context.drawImage(imageRepository.girlya, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 1:	//@ Kathy, why is this so complicated compared to the rest??
+				case 1:	
 					context.drawImage(imageRepository.normalguya, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
@@ -697,7 +699,7 @@ function Client(){
 				case 0:
 					context.drawImage(imageRepository.girly, playerx, playery, Player.WIDTH, Player.HEIGHT);
 					break;
-				case 1: //@ Kathy, why is this so complicated compared to the rest??
+				case 1: 
 					context.drawImage(imageRepository.normalguy, playerx, playery-ImageRepository.NORMAL_HEIGHTDIFF, Player.WIDTH, Player.HEIGHT+ImageRepository.NORMAL_HEIGHTDIFF);
 					break;
 				case 2:
@@ -762,6 +764,7 @@ function Client(){
 		var oID = message.pid;	//Opponent ID
 		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
 
+		//An opponent informs that he/she has reached the finish line. Update his/her position accordingly
 		if(message.playerFinish == true){
 			opponentArr[oID].distance = message.playerDistance;
 			opponentArr[oID].x = message.playerX;
@@ -802,7 +805,7 @@ function Client(){
 	}
 
 	var GameLoop = function(){
-		//console.log(player.projectiles);
+
 		//update projectile status of the player
 		for (var key in player.projectiles) {
 			player.projectiles[key].updatePos(1000/FunJump.FRAME_RATE);
@@ -863,6 +866,10 @@ function Client(){
 			}
 		}
 
+		/*
+			If an opponent can move, we should simulate his movements
+			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
+		*/
 		for(var i = 0; i < opponentArr.length; i ++){
 			if(opponentArr[i]!=null && opponentArr[i].canMove == true){
 				checkOpponentFall(opponentArr[i]);
@@ -966,8 +973,6 @@ function Client(){
          						player.projectiles[key].distance + Projectile.SIZE > opponent.distance - Player.HEIGHT &&
          						player.projectiles[key].distance - Projectile.SIZE < opponent.distance)
 		 					{
-
-		 						console.log("Hit");
 								if(opponent.powerup == true){
 									opponent.powerup = false;
 									sendToServer({type:"removeshield", pid: opponent.id});
@@ -1055,7 +1060,6 @@ function Client(){
 					}
 			}
 
-			console.log(players);
 	}
 
 	var updatePlayerVariables = function(){

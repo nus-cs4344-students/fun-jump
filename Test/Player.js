@@ -2,7 +2,7 @@
 console.log("Player Loaded");
 function Player(id) {
 	var that              = this;
-	//this.image;
+
 	that.x                = 0;
 	that.y                = FunJump.HEIGHT-Player.HEIGHT;
 	that.vx               = 0;
@@ -15,20 +15,26 @@ function Player(id) {
 
 	that.powerups         = [];
 	that.platforms        = [];
+	
+	//for player's projectiles
 	that.projectiles      = [];
-	that.projectileTimer  = 0;
-	that.isHit            = false;
-	that.shoot            = false; //true when player fires a projectile, for graphical display purpose
-	that.finish           = false;//true if player reaches finish line
-	that.start            = true;
-	that.die              = false;
-	that.image            = new Image();
+	that.projectileTimer  = 0; //the latest time when the player fires a projectile
+	
+	//flags to decide which state the player is in
+	that.isHit            = false; //true when player is hit with an projectile
+	that.shoot            = false; //true when player fires a projectile
+	that.finish           = false; //true if player reaches finish line
+	that.start            = true;  //true when the player starts the game and the screen hasn't moved upwards
+	that.canMove          = false; //true when the player is allowed to move
+	that.powerup          = false; //true when the player possess a Shield Powerup
+	
 	that.id               = id;
-	that.canMove          = false;
+	
 	that.stepMove         = 0;	//Check how many left / right it has moved
 	that.dirMove;	//Check whether its left / right it has moved.
 
-	that.gameDuration     = 0;//the duration of the player's gameplay
+	//the duration of the player's gameplay
+	that.gameDuration     = 0;
 
 	that.vx               = 0;
 
@@ -39,8 +45,6 @@ function Player(id) {
 	that.fallSpeed        = 1;
 
 	that.screenMove       = false;
-
-	that.powerup          = false;	//Shield Powerup
 
 	that.setPosition = function(x,y){
 		that.x = x;
