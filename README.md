@@ -6,7 +6,7 @@ by
 Name                        | Matric Number
 ---                         | ---
 [Hu Qiang](http://qiang.hu) | A0077857J
-Satish 	                    | 
+Sathish S/O Ramani          | A0087988X
 Dinh Hoang Phuong Thao      | A0075099R
 
 ## Run the game  
@@ -24,9 +24,9 @@ Global configuration is in FunJump.js. You need to change the SERVER_NAME to you
 Open a modern browser and navigate to SERVER_NAME:PORT/index.html, where SERVER_NAME and PORT are from previous section.
 
 ##Development Environment
-+ Mac OS X 10.9, 
++ Mac OS X 10.9 / Windows 7
 + NodeJS: version 0.10.21
-+ Safari (Mac ): 7.0
++ HTML5-Compatible browsers -> Safari (Mac): 7.0, Chrome (Windows): 30.0
 
 ##Known issues
 As different browsers implement HTML5 differently, things are not working perfectly on all platforms.
