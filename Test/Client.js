@@ -24,7 +24,6 @@ function Client(){
 	var platforms          = [];
 	var powerups           = [];
 
-
 	//For global objects
 	var debugTxt;
 	var convMaxXThres      = 50;
@@ -40,15 +39,6 @@ function Client(){
     }
 
     that.sendToServer = sendToServer;
-    var appendMessage = function(location, msg) {
-		/*if(location=="clientMsg"){
-			document.getElementById(location).innerHTML = msg;
-		}
-		else{
-			var prev_msgs = document.getElementById(location).innerHTML;
-			document.getElementById(location).innerHTML = "[" + new Date().toString() + "] " + msg + "<br />" + prev_msgs;
-		}*/
-    }
 
     var gameEnd	= function(){
     	clearInterval(GameLoopID);
@@ -96,10 +86,6 @@ function Client(){
             socket.onmessage = function (e) {
                 var message = JSON.parse(e.data);
                 switch (message.type) {
-                case "message":
-                    appendMessage("serverMsg", message.content);
-                    break;
-
 				case "updateReady":
 					break;
 
@@ -290,7 +276,7 @@ function Client(){
 					break;
 
                 default:
-					appendMessage("serverMsg", "unhandled meesage type " + message.type);
+					console.log("unhandled meesage type " + message.type);
 					break;
                 }
 
@@ -325,6 +311,7 @@ function Client(){
         //draw finish line
         context.drawImage(imageRepository.finishline,0,winningY+ImageRepository.WINNING_HEIGHT);
 
+		//Set the 'final placings' coordinates accordingly.
 		var firstX = winningX + 105 + 25;
 		var firstY = winningY + 45 - Player.HEIGHT;
 		var secondX = winningX + 30;
@@ -434,6 +421,8 @@ function Client(){
 		renderOpponentMovement(direction,noOfUpdates,oid);
 	}
 
+	
+	//Client initializes his GUI / Screen
 	var initGUI = function() {
 		playArea = document.getElementById('mycanvas');
 		playArea.width = FunJump.WIDTH;
@@ -448,6 +437,7 @@ function Client(){
 				}
 			}
 
+			//Press up key for a debug function. Place your console.log's there if you need to debug then press up key.
 			if(e.which == 38)
 				debugFn();
 
@@ -476,6 +466,7 @@ function Client(){
 		playArea.addEventListener('mouseup', function(e) {
 		    mouse.down = false;
 		});
+		
 		//Find the coordinate of where the mouse is clicked wrt the canvas
 		playArea.addEventListener('mousemove', function(e) {
 		    var rect = playArea.getBoundingClientRect();
@@ -497,6 +488,7 @@ function Client(){
 		    var touchY = touch.clientY - rect.top;
 		    fireBullet(touchX,touchY);
 		}, false);
+		
 		playArea.addEventListener('touchmove', function(e) {
 		    // Not interested in this,
 		    // but prevent default behaviour
@@ -504,6 +496,7 @@ function Client(){
 		    // or zoom
 		    e.preventDefault();
 		}, false);
+		
 		playArea.addEventListener('touchend', function(e) {
 		    // as above
 		    e.preventDefault();
@@ -512,6 +505,7 @@ function Client(){
 		window.addEventListener("devicemotion", function(e) {
             onDeviceMotion(e);
         }, false);
+		
         window.ondevicemotion = function(e) {
             onDeviceMotion(e);
         }
@@ -545,8 +539,8 @@ function Client(){
 		else
 			render();	//Render once.
     }
-
-
+	
+	//Drawing on canvas function
 	var render = function() {
         // Get context
         var context = playArea.getContext("2d");
@@ -584,6 +578,7 @@ function Client(){
 				});
 			}
 		}
+		
 		player.projectiles.forEach(function(projectile,ind){
 			//Draw the bullet if it is within the player's screen
 			if(projectile.distance+Projectile.SIZE>player.yRel){
@@ -625,7 +620,6 @@ function Client(){
 
 	//Draw the progress bar for everyone.
     var drawProgressBar = function(context){
-
     	var progressX = FunJump.WIDTH-ImageRepository.PROGRESS_WIDTH;
     	var progressY = (FunJump.HEIGHT-ImageRepository.PROGRESS_HEIGHT)/2;
 		context.drawImage(imageRepository.progress, progressX, progressY, ImageRepository.PROGRESS_WIDTH, ImageRepository.PROGRESS_HEIGHT);
@@ -757,8 +751,6 @@ function Client(){
 		}
 	}
 
-
-	//NEED TO ADD IN JITTER OPTION HERE!
 	var updateOpponent = function(message){
 		var oID = message.pid;	//Opponent ID
 		var tempYForOpp = FunJump.HEIGHT - (message.distance - player.yRel);
@@ -774,19 +766,12 @@ function Client(){
 			opponentArr[oID].gameDuration = message.playerGameDuration;
 		}
 
-		//TELEPORT NEEDS TO HAPPEN! TOO FAR
+		//We chose teleport over convergence when there is a huge distance difference. Why? Convergence will make the game look silly when someone goes from top to bottom, cutting through platforms. Teleport is more feasible over here.
+		//However, convergence DOES happen when there is a small movement different. (See convergeOpponentMovement section)
 		else if( ((opponentArr[oID].x + convMaxXThres) < message.playerX )||
 			((opponentArr[oID].x - convMaxXThres) > message.playerX ) ||
 			((opponentArr[oID].distance - convMaxYThres) > message.playerDistance)||
 			((opponentArr[oID].distance + convMaxYThres) < message.playerDistance)	){
-
-			/*console.log("RESET POS " +
-				((opponent.x + convXThres) < message.playerX ) + " " +
-				((opponent.x - convXThres) > message.playerX ) + " " +
-				((opponent.distance - convYThres) > message.playerDistance) + " " +
-				((opponent.distance + convYThres) < message.playerDistance))
-
-			console.log("PREV DISTANCE " + opponent.distance + " NEW DIST " +  message.playerDistance);*/
 				opponentArr[oID].distance = message.playerDistance;
 				opponentArr[oID].isFalling = message.playerIsFalling;
 				opponentArr[oID].isJumping = message.playerIsJumping;
@@ -834,7 +819,7 @@ function Client(){
 			If the player can move, we should check his jumping, check collision with platform
 			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
 		*/
-		if(player.canMove == true){
+		if(player.canMove == true && player.isHit == false){
 			checkPlayerFall();
 			checkPlatformCollisionForPlayer();
 			checkPowerupCollisionForPlayer();
@@ -870,7 +855,7 @@ function Client(){
 			Also, if he gets frozen, we stop him so that this if statement never runs till he can move again.
 		*/
 		for(var i = 0; i < opponentArr.length; i ++){
-			if(opponentArr[i]!=null && opponentArr[i].canMove == true){
+			if(opponentArr[i]!=null && opponentArr[i].canMove == true && opponentArr[i].isHit == false){
 				checkOpponentFall(opponentArr[i]);
 				checkCollisionForOpponent(opponentArr[i]);
 				collisionDetect(opponentArr[i]);
@@ -996,9 +981,11 @@ function Client(){
 		}
 	}
 
+	//These two are needed cause we only want to send the player variables once. (Cut updates to server)
 	var jumping = 0;
 	var falling = 0;
 
+	//Render the opponent's movement accordingly. (Client render)
 	var checkOpponentFall = function(opponent){
 		if (opponent.isJumping){
 			opponent.checkJump();
@@ -1009,6 +996,7 @@ function Client(){
 		opponent.yForOpp = FunJump.HEIGHT - (opponent.distance - player.yRel);
 	}
 
+	//Render the player's movement accordingly.
 	var checkPlayerFall = function(){
 		if (player.isJumping){
 			player.checkJump();
@@ -1022,7 +1010,7 @@ function Client(){
 		}
 		if(connected && (falling == 1 || jumping == 1)){
 			updatePlayerVariables();
-			//Reupdate player after 0.25second (something like local lag)
+			//Reupdate player after 0.25second (something like local lag) This is to prevent some rendering issues too.
 			setTimeout(function(){updatePlayerVariables();}, 250);
 		}
 	}
@@ -1061,6 +1049,7 @@ function Client(){
 
 	}
 
+	//Function to update the player variables to the rest of the opponents.
 	var updatePlayerVariables = function(){
 		sendToServer({type:"updatePlayerPosition",
 			playerX: player.x,
@@ -1080,6 +1069,7 @@ function Client(){
 		}
 	}
 
+	//Update the player's direction. Only called when player hits 'left or right'
 	var updatePlayerDirection = function(){
 		sendToServer({type:"updatePlayerDirection",
 			playerDirection: player.direction,
@@ -1088,6 +1078,7 @@ function Client(){
 			pid:player.id});
 	}
 
+	//Player will move according to left / right key's being pressed.
 	var movePlayer = function(e,updateDirection){
 		if(playerStopped == false){
 			if (e.which == 37 || e.which == 65)
@@ -1102,6 +1093,7 @@ function Client(){
 		}
 	}
 
+	//Player will stop / decelerate if no key is being pressed.
 	var stopPlayer = function(updateDirection){
 		if(playerStopped == true){ //Need to constantly check if person has keydown or not.
 			if(player.vx == 0)	//once player has stopped, we don't have to do anything.
@@ -1133,6 +1125,7 @@ function Client(){
 		player.powerups = powerups;
 	}
 
+	//Draw platforms for map.
 	var drawPlatforms = function(context){
 		platforms.forEach(function (platform){
 			if(platform.type == 0)
@@ -1144,6 +1137,7 @@ function Client(){
 		});
 	}
 
+	//Draw powerups.
 	var drawPowerups = function(context){
 		for(var i = 0; i < powerups.length; i ++){
 			if(powerups[i].taken == false)
@@ -1151,6 +1145,10 @@ function Client(){
 		}
 	}
 
+	//When the player is falling and hits a platform, he needs to jump up.
+	//However, there is no packet sent for hitting a platform. Rather, an update is sent when a player jumps.
+	//In this case, hitting a platform is similar to jumping.
+	//This is to prevent duplicate sending of packets.
 	var checkPlatformCollisionForPlayer = function(){
 		platforms.forEach(function(platform, no){
 			//Client will render player position when platform collision happens based on requirements
@@ -1188,6 +1186,7 @@ function Client(){
 		});
 	}
 
+	//If the player touches the powerup, he will send it to the server.
 	var checkPowerupCollisionForPlayer = function(){
 		if(player.powerup == false){
 			powerups.forEach(function(powerup,no){
@@ -1211,12 +1210,16 @@ function Client(){
 					(player.y > powerup.y) && (player.y < powerup.y + Powerup.HEIGHT))){
 						powerup.taken = true;
 						sendToServer({type:"powerup", powerupid: powerup.id, pid:player.id, pTime:Date.now()});
+						//He does not NECCESSARILY get the powerup.
+						//It will dissepear on the map and have a 300ms delay for him to get.
+						//If within this delay, someone else have already taken it and according to the server, he has taken it before, the other player will have the shield animation showing that the enemy has taken it instead.
 					}
 				}
 			});
 		}
 	}
 
+	//Client render's the opponent collision with platforms
 	var checkCollisionForOpponent = function(opponent){
 		platforms.forEach(function(platform, no){
 			//Client will render opponent collision
@@ -1244,6 +1247,8 @@ function Client(){
 
 		});
 	}
+	
+	//When you press up key, this runs.
 	var debugFn = function(x){
 		console.log(noOfPlayers);
 	}

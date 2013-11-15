@@ -8,25 +8,25 @@ require(LIB_PATH + "Platform.js");
 function Server(PORT) {
 	var that = this;
     var port;         // Game port
-    var gameInterval; // Interval variable used for gameLoop
     var sockets;      // Associative array for sockets, indexed via player ID
-	var totalNoOfPlatforms = 250;
+	var totalNoOfPlatforms = 120;
 	var noOfPlatforms      = 6;
 	var platformDist       = (FunJump.HEIGHT/ noOfPlatforms);
 	var platforms          = [];
 	var powerups           = [];
 	var maxNoOfPlayers     = Server.MAXPLAYERS;	//Set ur max number of players here. CURRENTLY ITS 4 due to 4 images!
-
+	var nextAvailSlot;	//The next available slot for the player
+	
 	var readyPlayers       = new Array(maxNoOfPlayers);	//Game state for ready.
 	var connectedPlayers   = new Array(maxNoOfPlayers);	//Game state for connected players
-	var latencyPlayers     = new Array(maxNoOfPlayers);
-	var timeDiffPlayers    = new Array(maxNoOfPlayers);
+	var latencyPlayers     = new Array(maxNoOfPlayers); //Contains the latency of each player
+	var timeDiffPlayers    = new Array(maxNoOfPlayers); //Contains the 'wall clock' synchronization time difference from server
 
 	that.gameStarted       = false;
-	var nextAvailSlot;
 	that.numOfPlayers      = 0;
 
-
+	
+	//Broadcast to every client
 	var broadcast = function (msg) {
 		var id;
 		for (id in sockets) {
@@ -44,6 +44,7 @@ function Server(PORT) {
 		}
 	}
 
+	//Send to one specific client
     var unicast = function (socket, msg) {
     	//socket may be null, in timeout function as players may disconnect during that period.
     	if(socket!=null){
@@ -60,6 +61,7 @@ function Server(PORT) {
 		return null;
 	}
 
+	//Check the number of ready players
 	var numOfReadyPlayer = function(){
 		var total = 0;
 		for (var i = 0; i < maxNoOfPlayers; i++)
@@ -71,6 +73,8 @@ function Server(PORT) {
 		}
 		return total;
 	}
+	
+	
 	var reportToAppServer = function(){
 		var request = require('request');
 		request({
@@ -81,6 +85,9 @@ function Server(PORT) {
 			function(error, response, body){
 		});
 	}
+	
+	
+	//First function that server.js will call. Something like a constructor.
     this.start = function () {
     	console.log("To start a game server on port " + PORT);
         try {
@@ -96,7 +103,6 @@ function Server(PORT) {
 				connectedPlayers[i] = false;
 			}
 
-			gameInterval        = undefined;
 			sockets             = new Object;
             generatePlatforms();	//Generate the platforms for all players.
 			generatePowerups();	//Generates powerup for all players.
@@ -106,11 +112,9 @@ function Server(PORT) {
 
 			// Upon connection established from a client socket
             sock.on('connection', function (conn) {
+				//A player will get a new ID by checking the next available slot.
 				var playerID                        = nextAvailSlot();
-				var noOfLatencyCheckPacket          = 0;
-				var totalLatencyAfterThreePackets   = 0;
-				var clientTimeDiffAfterThreePackets = 0;
-				var initialServerTime               = 0;
+				
 				//FULL! cannot join! Appserver should do the checking but just in case...
 				if(playerID == null){
 					unicast(conn, {type:"error", content:"Game is full!"});
@@ -124,6 +128,12 @@ function Server(PORT) {
 				}
 
 				else{
+					//Variables required for latency / wall clock synchronization
+					var noOfLatencyCheckPacket          = 0;
+					var totalLatencyAfterThreePackets   = 0;
+					var clientTimeDiffAfterThreePackets = 0;
+					var initialServerTime               = 0;
+				
 					sockets[playerID] = conn;
 					console.log("New Player ID: " + playerID + " has connected");
 
@@ -135,13 +145,17 @@ function Server(PORT) {
 					broadcastToRest({type:"newplayer", pid:playerID},playerID);
 					that.numOfPlayers++;
 					reportToAppServer();
+					
 					//Get Client RTT & Sync the time (3 packets at 1 second interval)
-					//This may cause problem since client may disconnect with in 3 seconds!!!
+					//If a client disconnects within 3 seconds, the packet will not get sent out. and on Disconnect, the player object will get deleted.
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},1000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},2000);
 					setTimeout(function(){unicast(sockets[playerID], {type:"latencyCheck", content:0, serverTime:Date.now()});},3000);
 
 					// --------------- Commands Server Receives From Client ------------------
+					
+					//Close function = player disconnected
+					//This function will remove the player from the array and free up that slot.
 					conn.on('close', function () {
 						console.log("Player ID: " + playerID + " has DISCONNECTED!");
 						connectedPlayers[playerID] = false;	//Remove player from array.
@@ -155,23 +169,26 @@ function Server(PORT) {
 						else if (that.numOfPlayers == 1){
 							// that.gameStarted = false;
 						}
+						
 						//Send a player disconnected command ALL clients for them to remove the player.
 						var message = {type:"playerDC", pid:playerID, numOfPlayers:that.numOfPlayers};
 						broadcastToRest(message,playerID);
 						
 						reportToAppServer();
-
 					});
 
+					//Server receives data from client
 					conn.on('data', function (data) {
 						var message = JSON.parse(data);
 						switch (message.type) {
-							// one of the player starts the game.
+						
+							//Updates the player's position to the rest
 							case "updatePlayerPosition":
 								message.type = "updateOpponent";
 								broadcastToRest(message,playerID);
 								break;
 
+							//Updates the player's direction to the rest
 							case "updatePlayerDirection":
 								message.type = "updateOpponentDirection";
 								broadcastToRest(message,playerID);
@@ -189,15 +206,20 @@ function Server(PORT) {
 								broadcastToRest(message,playerID);
 								break;
 
+							// Player presses Ready button
 							case "ready":
 								readyPlayers[message.pid] = true;
 								broadcastToRest(message, message.pid);
+								
+								//If all are ready, game starts
 								if (that.numOfPlayers > 1 && numOfReadyPlayer() == that.numOfPlayers){
 									broadcast({type:"start", timeToStart:new Date().getMilliseconds()+2000});
 									that.gameStarted = true;
 								}
 								reportToAppServer();
 								break;
+								
+							
 							case "restart":
 								// readyPlayers = new Array(maxNoOfPlayers);
 								readyPlayers[message.pid] = true;
@@ -215,6 +237,8 @@ function Server(PORT) {
 								}
 								reportToAppServer();
 								break;
+								
+							
 							case "powerup":
 								/*	Server decides on whom will get the powerup based on
 
@@ -253,9 +277,15 @@ function Server(PORT) {
 								else{	//ignore.
 								}
 								break;
+								
+							//Player has been hit / burnt. shield must be removed. Sent to all.
 							case "removeshield":
 								broadcast(message);
 								break;
+								
+							//Synchronize wall clock with server according to latency and client's wall clock timing.
+							//This happens at the start of the game and at intervals during the game.
+							//Only averages will be taken into consideration
 							case "latencyCheck":
 								noOfLatencyCheckPacket++;
 								totalLatencyAfterThreePackets = totalLatencyAfterThreePackets + (Date.now() - message.serverTime);
@@ -274,9 +304,11 @@ function Server(PORT) {
 									//console.log("3 packets captured.AVE RTT LATENCY IS " + latencyPlayers[playerID] + " " + timeDiffPlayers[playerID]);
 								}
 								break;
+								
 							case "ping":
 								console.log("Ping from player "+message.pid);
 								break;
+								
 							default:
 								console.log("Unhandled " + message.type);
 						}
@@ -301,6 +333,7 @@ function Server(PORT) {
         }
     }
 
+	//Server will decide on the platforms for all clients. All clients will have the same map.
 	var generatePlatforms = function(){
 		var position = FunJump.HEIGHT - Platform.HEIGHT - platformDist, type;
 
@@ -345,6 +378,7 @@ function Server(PORT) {
 		position = position - platformDist;
 	};
 
+	//Server will generate the same x/y axis for the powerups for all clients.
 	var generatePowerups = function(){
 		var powerupID = 0;
 		for (var i = 0; i < totalNoOfPlatforms; i++) {	//No of powerups depends on the number of platforms.
@@ -359,6 +393,7 @@ function Server(PORT) {
 		}
 	};
 
+	//Server will get reset if there are no more players in the server.
 	var resetServer = function(){
 		readyPlayers      = new Array(maxNoOfPlayers);	//Game state for ready.
 		connectedPlayers  = new Array(maxNoOfPlayers);	//Game state for connected players
@@ -376,9 +411,5 @@ function Server(PORT) {
 	}
 }
 
-
-// var gameServer = new Server();
-// gameServer.start();
-// console.log("SERVER LOADED");
 Server.MAXPLAYERS = 4;
 global.Server = Server
