@@ -103,36 +103,28 @@ function Player(id) {
 		if (that.canMove ){
 			if( ax < -0.4){
 				that.dirMove = "leff";
-				// that.vx = ax * 5;
-				that.vx = that.vx - Player.XACCELERATION/3;
+				//Decrease the normal acceleration to 1/5, or velocity increase too fast!
+				that.vx = that.vx - Player.XACCELERATION/5;
 				that.direction = "left";
 				that.stepMove++;
 			}
 			else if( ax > 0.4){
 				that.dirMove = "right";
 				// that.vx = ax * 5;
-				that.vx = that.vx + Player.XACCELERATION/3;
+				that.vx = that.vx + Player.XACCELERATION/5;
 				that.direction = "right";
 				that.stepMove++;
 			}
 			else{
-				if(that.vx > Player.XACCELERATION)
-				{
-					that.vx = that.vx - (Player.XACCELERATION/3+0.5);
-				}	
-				else if(that.vx < -Player.XACCELERATION)
-				{
-					that.vx = that.vx + (Player.XACCELERATION/3+0.5);
-				}
-				else
-				{
-					that.vx = 0;
-				}
+				//Else stop player, or it is very difficult to predict where it lands in mobile devices.
+				that.vx = 0;
 						
 				that.direction = "stop";
 			}
-			if (Math.abs(that.x) > 40){
-				that.x = that.x/Math.abs(that.x) * 40;
+
+			//Limit the max speed to or the speed will increase dramatically.
+			if (Math.abs(that.xv) > 100){
+				that.x = that.x/Math.abs(that.x) * 100;
 			}
 			that.x = that.x+that.vx;
 			if(that.x < 0){
