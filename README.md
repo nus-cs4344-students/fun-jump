@@ -31,3 +31,4 @@ Open a modern browser and navigate to SERVER_NAME:PORT/index.html, where SERVER_
 ##Known issues
 As different browsers implement HTML5 differently, things are not working perfectly on all platforms.
 * Audio is not played on iOS Safari
+* Scket connection to srver is not established if SERVER_NAME set to IP adderss on my Mac, after upgrading XCode. It works fine using "localhost" or loopback ip, 127.0.0.1, and on the server.

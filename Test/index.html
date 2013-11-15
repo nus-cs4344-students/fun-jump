@@ -14,7 +14,8 @@
 			if (location.port != "4344"){
 				window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";
 			}
-			$(document).on('pageinit', function(){
+			// $(document).on('pageinit', function(){
+			$(document).ready(function(){
 				$("#manuScreen").height(FunJump.HEIGHT);
 				$("#manuScreen").width(FunJump.WIDTH);
 				$("#manuScreen").css("margin-left", ($(window).width()-$("#manuScreen").width())/2);
@@ -40,7 +41,7 @@
 			});
 
 
-			initialSockets = function(){
+			var initialSockets = function(){
 				try{
 					var socket = new SockJS("http://"+FunJump.SERVER_NAME + ":4344/AppServer");	
 					socket.onmessage = function (e) {
@@ -71,8 +72,8 @@
 					console.log("Error: " + e);
 				}
 			}
-			joinRoom = function(num){
-				url = "http://"+FunJump.SERVER_NAME+":4344/join/"+num,
+			var joinRoom = function(num){
+				var url = "http://"+FunJump.SERVER_NAME+":4344/join/"+num;
 				$.ajax({
 					type: 'GET',
 					url: url,
@@ -94,7 +95,7 @@
 		    	});
 			}
 
-			updateNumberOfPlayers = function(){
+			var updateNumberOfPlayers = function(){
 				$.ajax({
 					type: 'GET',
 					url: "http://"+FunJump.SERVER_NAME+":4344/numOfPlayers",

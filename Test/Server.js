@@ -123,7 +123,7 @@ function Server(PORT) {
 
 				//Game has started! No one else can join.
 				else if(that.gameStarted == true){
-					unicast(conn, {type:"error", content:"Game has started! You are not able to join it."});
+					unicast(conn, {type:"gameStarted", content:"Game has started! You are not able to join it."});
 					return ;
 				}
 

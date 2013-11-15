@@ -68,10 +68,12 @@ try{
 
 
 
-// app.get("/", function(req, res) {
-  // res.sendfile(__dirname+"/index.html");
-// });
+app.get("/", function(req, res) {
+  res.sendfile(__dirname+"/index.html");
+});
 
+//Client to request join into a room;
+//Does not allow player to join if game started.
 app.get("/join/:rmID", function(req, res){
 	var roomID = req.params.rmID;
 	console.log("request to join room "+roomID + "  " + gamePorts[roomID]);
@@ -96,36 +98,8 @@ app.get("/join/:rmID", function(req, res){
 
 });
 
-/*
-	report number of players per room.
-*/
-app.get("/removeuser/:rmPort", function(req, res){
-	var roomPort = req.params.rmPort;
-	var roomID;
-	for (i = 0; i < gamePorts.length; i++){
-		if (gamePorts[i] == roomPort){
-			roomID = i;
-			break
-		}
-	}
-	players[roomID] = gameServers[roomID].numOfPlayers;
-	// if (players[roomID]==0){
-	// 	gameServers[roomID] = null;
-	// }
-	broadcast({type:"report",players:players, started: gameStarted});
-});
 
-app.get("/:rmID", function(req, res){
-	var roomID = req.params.rmID;
-	res.send(
-			{
-				numOfPlayers:gameServers[roomID].numOfPlayers
-			}
-
-		);
-});
-
-
+//API for game server to report its state to AppServer
 app.post("/report", function(req, res){
 	console.log(req.body);
 	var index = gamePorts.indexOf(parseInt(req.body.port));
@@ -135,9 +109,6 @@ app.post("/report", function(req, res){
 	broadcast({type:"report",players:players, started: gameStarted});
 	res.send(200, JSON.stringify(players));
 });
-// app.listen(port, function() {
-//    console.log("Listening on " + port);
-//  });
 
  /* serves all the static files */
  app.get(/^(.+)$/, function(req, res){ 

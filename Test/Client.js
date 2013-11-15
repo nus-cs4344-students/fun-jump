@@ -274,7 +274,10 @@ function Client(){
 				case "latencyCheck":
 					sendToServer({type:"latencyCheck", content:Date.now(), serverTime:message.serverTime});
 					break;
-
+				case "gameStarted":
+					alert("You entered the room by accident. This game has started, you are navigated to lobby");
+					window.location.href = "http://"+FunJump.SERVER_NAME+":4344/index.html";
+					break;	
                 default:
 					console.log("unhandled meesage type " + message.type);
 					break;
@@ -529,7 +532,7 @@ function Client(){
 		initGUI();	//Initialize listeners and context etc.
         imageRepository = new ImageRepository();	//Initialize images
         checkImgLoaded();
-        setInterval(pingServer, 4000);
+        // setInterval(pingServer, 4000);
     }
 
 	//function to check if all images have been loaded
